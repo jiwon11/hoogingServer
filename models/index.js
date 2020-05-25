@@ -13,8 +13,9 @@ db.Account = require('./account')(sequelize, Sequelize);
 db.User = require('./user')(sequelize, Sequelize);
 db.Post = require('./post')(sequelize, Sequelize);
 db.Tag = require('./tag')(sequelize, Sequelize);
-db.Comment = require('./comment') (sequelize, Sequelize);
+db.Comment = require('./comment')(sequelize, Sequelize);
 db.Patron = require('./patron')(sequelize, Sequelize);
+db.MediaFile = require('./mediaFile')(sequelize, Sequelize);
 
 db.User.hasMany(db.Post);
 db.Post.belongsTo(db.User);
@@ -22,6 +23,8 @@ db.User.hasMany(db.Comment);
 db.Comment.belongsTo(db.User);
 db.User.hasMany(db.Account);
 db.Account.belongsTo(db.User);
+db.Post.hasMany(db.MediaFile);
+db.MediaFile.belongsTo(db.Post);
 db.Post.belongsToMany(db.Tag, {through : 'PostTag'});
 db.Tag.belongsToMany(db.Post, {through : 'PostTag'});
 db.Post.hasMany(db.Comment);
@@ -45,6 +48,16 @@ db.User.belongsToMany(db.User, {
   foreignKey : 'followerId',
   as : 'Followings',
   through : 'UserFollow',
+});
+db.Tag.belongsToMany(db.Tag, {
+  foreignKey : 'mainTagId',
+  as : 'SubTags',
+  through : 'MainTagSubTag',
+});
+db.Tag.belongsToMany(db.Tag, {
+  foreignKey : 'subTagId',
+  as : 'MainTags',
+  through : 'MainTagSubTag',
 });
 db.User.belongsToMany(db.Tag, {
   through : 'TagFollow',

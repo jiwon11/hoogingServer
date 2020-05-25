@@ -4,9 +4,12 @@ const bcrypt = require('bcrypt');
 const { isLoggedIn,isNotLoggedIn } = require('./middlewares');
 const { User } = require('../models');
 const gravatar = require('gravatar');
+const multer = require('multer');
 
 const router = express.Router();
-router.post('/signUp', isNotLoggedIn, async(req, res, next) => {
+const signup = multer();
+
+router.post('/signUp', isNotLoggedIn, signup.none(),async(req, res, next) => {
     console.log(req.body);
     const {email, nickname, password, birthdate, gender  } = req.body;
     try {
@@ -28,13 +31,13 @@ router.post('/signUp', isNotLoggedIn, async(req, res, next) => {
             gender : gender,
             profileImg : userGravatar,
         });
-        return res.status(200).json({
+        return res.status(201).json({
             'message' : 'signUp Complete!',
             'userInfo' : newUser,
         });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({
+        return res.status(401).json({
             'error' : 'Find User Error',
             'message' : error
         });
@@ -45,13 +48,13 @@ router.post('/login',isNotLoggedIn, (req, res, next) => {
     passport.authenticate('local', (authError, user, info) => {
         if (authError) {
             console.log(authError);
-            return res.status(500).json({
+            return res.status(401).json({
                 'error' : 'auth Error',
                 'message' : authError
             });
         }
         if (!user) {
-            return res.status(500).json({
+            return res.status(404).json({
                 'error' : 'login Error',
                 'message' : info.message
             });
@@ -59,12 +62,12 @@ router.post('/login',isNotLoggedIn, (req, res, next) => {
         req.login(user, (loginError) => {
             if (loginError) {
                 console.error(loginError);
-                return res.status(500) .json({
+                return res.status(400).json({
                     'error' : 'loginError',
                     'message' : loginError
                 });
             }
-            return res.status(201).json({
+            return res.status(200).json({
                 'message' : 'Logged In',
                 'user' : user
             });

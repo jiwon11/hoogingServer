@@ -13,10 +13,14 @@ module.exports = (passport) => {
             if (exUser) {
                 done(null, exUser);
             } else {
+                var birthDate = new Date(profile.birthday + profile.birthyear);
                 const newUser = await User.create({
                     email : profile._json && profile.json.kaccount_email,
-                    nickname : profile.displayName,
-                    socialId : profile.id
+                    nickname : profile.nickname,
+                    socialId : profile.id,
+                    profileImg : profile.profile_image_url,
+                    gender : profile.gender,
+                    brithdate : birthDate
                 });
                 done(null, newUser);
             }

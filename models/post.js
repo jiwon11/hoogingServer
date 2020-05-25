@@ -8,10 +8,6 @@ module.exports = (sequelize, DataTypes) => (
             type : DataTypes.STRING(5000),
             allowNull : false,
         },
-        media : {
-            type : DataTypes.STRING(200),
-            allowNull : false
-        },
         starRate : {
             type : DataTypes.DOUBLE,
             allowNull: false
