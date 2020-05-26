@@ -16,6 +16,9 @@ db.Tag = require('./tag')(sequelize, Sequelize);
 db.Comment = require('./comment')(sequelize, Sequelize);
 db.Patron = require('./patron')(sequelize, Sequelize);
 db.MediaFile = require('./mediaFile')(sequelize, Sequelize);
+db.Description = require('./description')(sequelize, Sequelize);
+db.Address = require('./address')(sequelize, Sequelize);
+db.Search = require('./search')(sequelize, Sequelize);
 
 db.User.hasMany(db.Post);
 db.Post.belongsTo(db.User);
@@ -23,10 +26,16 @@ db.User.hasMany(db.Comment);
 db.Comment.belongsTo(db.User);
 db.User.hasMany(db.Account);
 db.Account.belongsTo(db.User);
+db.User.hasMany(db.Search);
+db.Search.belongsTo(db.User);
 db.Post.hasMany(db.MediaFile);
 db.MediaFile.belongsTo(db.Post);
+db.Post.hasMany(db.Description);
+db.Description.belongsTo(db.Post);
 db.Post.belongsToMany(db.Tag, {through : 'PostTag'});
 db.Tag.belongsToMany(db.Post, {through : 'PostTag'});
+db.Post.belongsTo(db.Address);
+db.Address.hasMany(db.Post);
 db.Post.hasMany(db.Comment);
 db.Comment.belongsTo(db.Post);
 db.Comment.belongsToMany(db.Comment,{

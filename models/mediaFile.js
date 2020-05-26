@@ -15,6 +15,9 @@ module.exports = (sequelize, DataTypes) => (
         size : {
             type : DataTypes.INTEGER,
             allowNull : false,
+        },
+        index : {
+            type : DataTypes.INTEGER,
         }
     }, {
         timestamps : true,
