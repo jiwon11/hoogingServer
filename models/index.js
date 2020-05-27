@@ -1,3 +1,4 @@
+
 const Sequelize = require('sequelize');
 const env = process.env.NODE_ENV || 'development';
 const config = require('../config/config.json')[env];
@@ -19,6 +20,8 @@ db.MediaFile = require('./mediaFile')(sequelize, Sequelize);
 db.Description = require('./description')(sequelize, Sequelize);
 db.Address = require('./address')(sequelize, Sequelize);
 db.Search = require('./search')(sequelize, Sequelize);
+db.Like = require('./like')(sequelize, Sequelize);
+
 
 db.User.hasMany(db.Post);
 db.Post.belongsTo(db.User);
@@ -74,11 +77,4 @@ db.User.belongsToMany(db.Tag, {
 db.Tag.belongsToMany(db.User, {
   through : 'TagFollow',
 });
-db.User.belongsToMany(db.Post, {
-  through : 'Like'
-});
-db.Post.belongsToMany(db.User, {
-  through : 'Like'
-});
-
 module.exports = db;

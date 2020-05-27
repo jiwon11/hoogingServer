@@ -5,7 +5,8 @@
     "database": "hooging_development",
     "host": "database-1.c2g4zseshvri.ap-northeast-2.rds.amazonaws.com",
     "port" : 3306,
-    "dialect": "mysql"
+    "dialect": "mysql",
+    "logging": false
   },
   "test": {
     "username": "admin",

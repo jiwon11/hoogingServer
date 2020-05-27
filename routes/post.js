@@ -4,8 +4,8 @@ const fs = require('fs');
 const AWS = require('aws-sdk');
 const multerS3 = require('multer-s3');
 const multer = require('multer');
-
-const { Post, Tag, User, MediaFile, Address, Comment, Like } = require('../models');
+const sequelize = require('sequelize');
+const { Post, Tag, User, MediaFile, Address, Comment, Like,Description } = require('../models');
 const { isLoggedIn } = require('./middlewares');
 
 const router = express.Router();
@@ -47,7 +47,7 @@ const upload = multer({
     limits: { fileSize: 100 * 1024 * 1024 },
   });
 
-function includeVideo(files) {
+const includeVideo = function includeVideo(files) {
     var includeVideoList = [];
     var includeVideo;
         for (var file in files) {
@@ -63,27 +63,33 @@ function includeVideo(files) {
             includeVideo = false;
         }
     return includeVideo;
-}
+};
 
 const upload2 = multer();
 router.post('/upload', upload.array('mediaFile'), async (req, res, next) => {
     console.log(req.files);
     try {
-        var includeVideo = includeVideo(req.files);
         const address = await Address.create({
             address: req.body.address,
             geographLong: parseFloat(req.body.geographLong),
             geographLat: parseFloat(req.body.geographLat),
         });
         const post = await Post.create({
-            userId: 1, //req.user.id
+            userId: req.user.id,
             title : req.body.title,
             description : req.body.description,
-            includeVideo : includeVideo,
+            includeVideo : includeVideo(req.files),
             starRate: parseFloat(req.body.starRate),
             certifiedLocation: Boolean(req.body.certifiedLocation),
             addressId : address.id
         });
+        /*
+        await Promise.all(req.body.descriptions.map(description => Description.create({
+            description : description,
+            postId : post.id,
+            index : req.body.descriptions.findIndex(description)
+        })));
+         */
         await Promise.all(req.files.map(file => MediaFile.create({
             originalname : file.originalname,
             mimetype : file.mimetype,
@@ -100,7 +106,7 @@ router.post('/upload', upload.array('mediaFile'), async (req, res, next) => {
         await Tag.update(
             {
             starRate : starRate,
-            reviewNum : reviewNum
+            reviewNum : sequelize.literal('reviewNum + 1'),
           },
           {where : {
               id : mainTagResult.id
@@ -167,6 +173,10 @@ router.get('/:postId', async (req, res, next) => {
             }
         ], 
      });
+     await product.update(
+        { field: sequelize.literal(' hits + 1') },
+        { where: { id : postId} }
+      );
     const comments = await Comment.findAll({
         where : { postId : postId },
         include : [
@@ -205,7 +215,10 @@ router.delete('/:postId/delete', isLoggedIn, async (req, res, next) => {
         });
     })
     .catch((err) => {
-        console.err(err);
+        res.status(404).json({
+            'message' : 'DELETE Post Error',
+            'error' : error
+        });
         next(err);
     });
 });

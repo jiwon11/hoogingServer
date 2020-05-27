@@ -11,6 +11,10 @@ const homeRouter = require('./routes/home');
 const authRouter = require('./routes/auth');
 const postRouter = require('./routes/post');
 const searchRouter = require('./routes/search');
+const userRouter = require('./routes/user');
+const likeRouter = require('./routes/like');
+const tagRouter = require('./routes/tag');
+const commentRouter = require('./routes/comment');
 const { sequelize } = require('./models');
 const passportConfig = require('./passport');
 
@@ -32,7 +36,7 @@ app.use(session({
   saveUninitialized: false,
   secret: process.env.COOKIE_SECRET,
   cookie: {
-    httpOnly: false,
+    httpOnly: true,
     secure: false,
   },
 }));
@@ -44,6 +48,10 @@ app.use('/', homeRouter);
 app.use('/auth', authRouter);
 app.use('/post', postRouter);
 app.use('/search', searchRouter);
+app.use('/tag', tagRouter);
+app.use('/like', likeRouter);
+app.use('/user', userRouter);
+app.use('/comment', commentRouter);
 
 app.use((req, res, next) => {
   const err = new Error('Not Found');

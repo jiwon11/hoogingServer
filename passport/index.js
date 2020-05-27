@@ -4,20 +4,24 @@ const kakao = require('./kakaoStrategy');
 const { User } = require('../models');
 
 
-module.exports = (passport ) => {
+module.exports = (passport) => {
     passport.serializeUser((user, done) => { 
-        done(null, user);
+        return done(null, user.id);
     });
 
-    passport.deserializeUser((id, done) => {
-        User.findOne({
-            where : { id },
-        })
-        .then(user => done(null, user))
-        .catch(err => done(err));
+    passport.deserializeUser(async (id, done) => {
+        try {
+            console.log(id);
+            const user = await User.findOne({
+                where : { id : id },
+            });
+            return done(null, user);
+        } catch (e) {
+            console.error(e);
+            return done(e);
+        }
     });
 
     local(passport);
-    kakao(passport);
     //google(passport);
 };

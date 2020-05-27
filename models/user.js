@@ -1,5 +1,13 @@
+
+
 module.exports = (sequelize, DataTypes) => (
     sequelize.define('user',{
+        id : {
+            type: DataTypes.CHAR(36),
+            defaultValue: DataTypes.UUIDV1,
+            primaryKey: true,
+            allowNull : false
+        },
         email : {
             type : DataTypes.STRING(50),
             allowNull : false,

@@ -8,7 +8,7 @@ const Op = sequelize.Op;
 
 const router = express.Router();
 
-router.get('/', async(req,res,next) => {
+router.get('/', isLoggedIn ,async(req,res,next) => {
     // http://localhost:8001/search?q={word}&category={category}
     console.log(req.query); // { q: 'test', category: 'popular' }
     const query = req.query.q;
@@ -19,7 +19,7 @@ router.get('/', async(req,res,next) => {
         if(query === '' || category === ''){
             const recentSearchResults = await Search.findAll({
                 where:{
-                    userId: 1 //req.user.id
+                    userId: req.user.id
                 },
                 order: [['updatedAt', 'DESC']]
             });
@@ -36,7 +36,7 @@ router.get('/', async(req,res,next) => {
                             where : {
                                 query : query,
                                 category : category,
-                                userId : 1, //req.user.id;
+                                userId : req.user.id
                             }
                         });
                     }
@@ -74,11 +74,11 @@ router.get('/', async(req,res,next) => {
                         },
                         include : [{
                             model : User,
-                            attributes : ['id', 'nickname',],
+                            attributes : ['id', 'nickname','profileImg'],
                             as : 'Followers',
                         }, {
                             model : User,
-                            attributes : ['id', 'nickname',],
+                            attributes : ['id', 'nickname','profileImg'],
                             as : 'Followings',
                         },{
                             model : Post,
