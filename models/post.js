@@ -20,6 +20,14 @@ module.exports = (sequelize, DataTypes) => (
             type : DataTypes.INTEGER,
             defaultValue : 0
         }, 
+        sequence : {
+            type : DataTypes.STRING(1000),
+            allowNull : false,
+        },
+        dump : {
+            type : DataTypes.BOOLEAN,
+            allowNull : false
+        }
     }, {
         timestamps : true,
         paranoid : true

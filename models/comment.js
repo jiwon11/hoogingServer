@@ -6,6 +6,7 @@ module.exports = (sequelize, DataTypes) => (
         }, 
         Like : {
             type : DataTypes.INTEGER,
+            defaultValue : 0
         }
     }, {
         timestamps : true,

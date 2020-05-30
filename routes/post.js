@@ -65,8 +65,17 @@ const includeVideo = function includeVideo(files) {
     return includeVideo;
 };
 
+function getIndex(ele) {
+    var _i = 0;
+    while((ele = ele.previousSibling) != null ) {
+      _i++;
+    }
+  
+    return _i;
+  }
+
 const upload2 = multer();
-router.post('/upload', upload.array('mediaFile'), async (req, res, next) => {
+router.post('/upload', isLoggedIn ,upload.array('mediaFile'), async (req, res, next) => {
     console.log(req.files);
     try {
         const address = await Address.create({
@@ -74,35 +83,12 @@ router.post('/upload', upload.array('mediaFile'), async (req, res, next) => {
             geographLong: parseFloat(req.body.geographLong),
             geographLat: parseFloat(req.body.geographLat),
         });
-        const post = await Post.create({
-            userId: req.user.id,
-            title : req.body.title,
-            description : req.body.description,
-            includeVideo : includeVideo(req.files),
-            starRate: parseFloat(req.body.starRate),
-            certifiedLocation: Boolean(req.body.certifiedLocation),
-            addressId : address.id
-        });
-        /*
-        await Promise.all(req.body.descriptions.map(description => Description.create({
-            description : description,
-            postId : post.id,
-            index : req.body.descriptions.findIndex(description)
-        })));
-         */
-        await Promise.all(req.files.map(file => MediaFile.create({
-            originalname : file.originalname,
-            mimetype : file.mimetype,
-            filename : file.filename,
-            size : file.size,
-            postId : post.id
-        })));
         const mainTagResults = await Tag.findOrCreate({
             where : {name : req.body.mainTag}
         });
         const mainTagResult = mainTagResults[0];
         var reviewNum = mainTagResult.reviewNum+1;
-        var starRate = (mainTagResult.reviewNum*mainTagResult.starRate+req.body.starRate)/reviewNum;
+        var starRate = (parseFloat(mainTagResult.reviewNum)*parseFloat(mainTagResult.starRate)+parseFloat(req.body.starRate))/parseFloat(reviewNum);
         await Tag.update(
             {
             starRate : starRate,
@@ -112,52 +98,74 @@ router.post('/upload', upload.array('mediaFile'), async (req, res, next) => {
               id : mainTagResult.id
           }}
         );
-    await post.addTags(mainTagResult);
-    if(req.body.subTag1){
-        var subTag1 = await Tag.findOrCreate({
-            where : {name : req.body.subTag1}
-        });
-        await mainTagResult.addSubTag(parseInt(subTag1[0].id,10));
-    }
-    if(req.body.subTag2){
-        var subTag2 = await Tag.findOrCreate({
-            where : {name : req.body.subTag2}
-        });
-        await mainTagResult.addSubTag(parseInt(subTag2[0].id,10));
-    }
-    Post.findOne({
-        where : {
-            id : post.id
-        },
-        include : [{
-            model : User,
-            attributes : ['id','nickname','profileImg'],
-        },
-        {
-            model : MediaFile,
-            attributes : ['filename', 'size', 'mimetype'],
-        },
-        {
-            model : Tag,
-            attributes : ['name', 'starRate', 'reviewNum'],
-            include : [{model : Tag, as : 'SubTags',attributes : ['name', 'starRate', 'reviewNum']}]
+        if(req.body.subTag1){
+            var subTag1 = await Tag.findOrCreate({
+                where : {name : req.body.subTag1}
+            });
+            await mainTagResult.addSubTag(parseInt(subTag1[0].id,10));
         }
-        ]
-    })
-    .then(post => res.status(201).json({
+        if(req.body.subTag2){
+            var subTag2 = await Tag.findOrCreate({
+                where : {name : req.body.subTag2}
+            });
+            await mainTagResult.addSubTag(parseInt(subTag2[0].id,10));
+        }
+        const post = await Post.create({
+            userId: req.user.id,
+            title : req.body.title,
+            description : '',
+            includeVideo : includeVideo(req.files),
+            starRate: parseFloat(req.body.starRate),
+            certifiedLocation: (req.body.certifiedLocation ==='true'),
+            addressId : address.id,
+            tagId : mainTagResult.id,
+            sequence : req.body.sequence,
+            dump : (req.body.dump ==='true')
+        });
+        console.log('===================================================');
+        const descriptions = JSON.parse(req.body.description);
+        const sequence = Array.from(req.body.sequence);
+        var i = 0, len = sequence.length;
+        do {
+            if(sequence[i] === 'D'){
+                var description = descriptions[0];
+                console.log('sequence is Description');
+                await Description.create({
+                    description: description,
+                    index : i+1,
+                    postId : post.id
+                }).then(function(){
+                    descriptions.splice(description,1);
+                });
+            }else{
+                console.log('sequence is Mediafile');
+                var file = req.files[0];
+                await MediaFile.create({
+                    originalname : file.originalname,
+                    mimetype : file.mimetype,
+                    filename : file.filename,
+                    size : file.size,
+                    postId : post.id,
+                    index : i+1
+                }).then(function(){
+                    req.files.splice(file,1);
+                });
+            }
+            i++; 
+        } while (i < len);
+    return res.status(201).json({
         'message' : 'Create New Post!',
         'post' : post
-    }))
-    .catch(err => next(err));
+    });
     } catch (error) {
       console.error(error);
       next(error);
     }
 });
 
-router.get('/:postId', async (req, res, next) => {
-    const pageId = req.params.postId;
-    if(!pageId) {
+router.get('/', isLoggedIn ,async (req, res, next) => {
+    const postId = req.query.postId;
+    if(!postId) {
         return res.status(404).json({
             'message' : 'Not Found Params',
         });
@@ -167,138 +175,215 @@ router.get('/:postId', async (req, res, next) => {
         where : { id : postId },
         include : [{
             model : User,
-            attributes : ['id', 'nickname','profimeImg'],
+            attributes : ['id', 'nickname','profileImg'],
             }, {
                 model : Tag,
+            },{
+            model : User,
+            through : 'Like',
+            as : 'Liker',
+            attributes : ['id', 'nickname','profileImg'],
+            }, {
+                model : MediaFile,
+                attributes : ['id', 'filename', 'size', 'mimetype', 'index'],
+            },
+            {
+                model : Description,
+                attributes : ['id', 'description', 'index'],
+            },
+            {
+                model : Tag,
+                attributes : ['name', 'starRate', 'reviewNum'],
+                include : [{model : Tag, as : 'SubTags',attributes : ['name', 'starRate', 'reviewNum']}]
             }
         ], 
      });
-     await product.update(
-        { field: sequelize.literal(' hits + 1') },
-        { where: { id : postId} }
-      );
-    const comments = await Comment.findAll({
-        where : { postId : postId },
-        include : [
-            {
-            model : User,
-            attributes : ['id', 'nickname','profimeImg'],
-        }, {
-            model : Comment,
-            as : 'Reply'
-        }
-    ]
-    });
-    const likes = await Like.findAndCountAll({
-        where : { likepage : postId },
-        include : [{
-            model : User,
-            attributes : ['id', 'nickname','profimeImg'],
-        },]
-    });
-    return res.status(200).json({
-        'post' : post,
-        'commets' : comments,
-        'like' : likes
-    });
+     if(post){
+        if(req.user.id !== post.userId){
+            await post.update(
+                { field: sequelize.literal(' hits + 1') },
+                { where: { id : postId} }
+              );
+         }
+        const comments = await Comment.findAll({
+            where : { postId : postId },
+            include : [
+                {
+                model : User,
+                attributes : ['id', 'nickname','profileImg'],
+            }, {
+                model : Comment,
+                through : 'Reply',
+                as : 'replys',
+            }
+        ]
+        });
+        return res.status(200).json({
+            'post' : post,
+            'commets' : comments,
+        });
+     }else {
+        return res.status(404).json({
+            'message' : 'Find post Error',
+            'error' : 'check postId',
+        });
+     }
     } catch (error) {
     console.error(error);
     return next(error);
     }
 });
 
-router.delete('/:postId/delete', isLoggedIn, async (req, res, next) => {
-    Post.destroy({ where : { id : req.body.postId } })
-    .then((result) => {
-        res.status(204).json({
-            'message' : 'DELETE Post!'
+router.delete('/delete', isLoggedIn, async (req, res, next) => {
+    try{
+        await Post.destroy({ where : { id : req.query.postId } });
+        await MediaFile.destroy({ where : { postId : req.query.postId}});
+        return res.status(204).json({
+            'message' : 'DELETE Post!',
         });
-    })
-    .catch((err) => {
-        res.status(404).json({
-            'message' : 'DELETE Post Error',
+    } catch(error){
+        console.log(error);
+        return res.status(204).json({
+            'message' : 'DELETE Post!',
             'error' : error
         });
-        next(err);
-    });
+    }
 });
 
-router.delete('/:postId/:mediaFileId/delete', isLoggedIn, async(req, res, next) => {
-    MediaFile.destroy({
-        where : {
-            id : MediaFileId,
-            postId : postId
-        }
-    });
-});
-
-router.post('/:postId/update/mediaFileUplaod', isLoggedIn,upload.array('mediaFile'), async(req, res, next) => {
-    await Promise.all(req.files.map(file => MediaFile.create({
-        originalname : file.originalname,
-        mimetype : file.mimetype,
-        filename : file.filename,
-        size : file.size,
-        postId : post.id
-    })));
-});
-
-router.post('/:postId/update', isLoggedIn,upload2.none(), async (req, res, next) => {
-    try {
-        const post = await Post.findOne({
-        where : { id : req.params.postId },
-        include : [{
-            model : User,
-            attributes : ['id', 'ninkname','profileImg'],
-            }, {
-                model : Tag,
+router.delete('/mediaFile/delete', isLoggedIn, async(req, res, next) => {
+    try{
+        const mediaFileId = req.query.mediaFileId;
+        const postId = req.query.postId;
+        MediaFile.destroy({
+            where : {
+                id : mediaFileId,
+                postId : postId
             }
-        ], 
         });
-        var includeVideo = includeVideo(req.files);
-        const address = await Address.create({
-            address: req.body.address,
-            geographLong: parseFloat(req.body.geographLong),
-            geographLat: parseFloat(req.body.geographLat),
+        res.status(204).json({
+            'message' : 'Delete Post MediaFile'
         });
-        await post.update({
-            title : req.body.title,
-            description : req.body.description,
-            includeVideo : includeVideo,
-            starRate: parseFloat(req.body.starRate),
-            certifiedLocation: Boolean(req.body.certifiedLocation),
-            addressId : address.id
+    } catch(error){
+        console.log(error);
+        res.status(404).json({
+            'message' : 'Delete Post MediaFile Error',
+            'error' : error
         });
-        const mainTagResults = await Tag.update({
-            where : {name : req.body.mainTag}
-        });
-        const mainTagResult = mainTagResults[0];
-        var reviewNum = mainTagResult.reviewNum+1;
-        var starRate = (mainTagResult.reviewNum*mainTagResult.starRate+req.body.starRate)/reviewNum;
-        await Tag.update(
-            {
-            starRate : starRate,
-            reviewNum : reviewNum
-          },
-          {where : {
-              id : mainTagResult.id
-          }}
-        );
-        await post.addTags(mainTagResult);
-        if(req.body.subTag1){
-            var subTag1 = await Tag.update({
-                where : {name : req.body.subTag1}
+    }
+});
+
+router.post('/update', isLoggedIn, upload.array('mediaFile'), async (req, res, next) => {
+    const postId = req.query.postId;
+    console.log(req.body);
+    /* sequence에 맞는 이미지와 글을 정렬하는 코드 추가*/
+    try {
+        const dump = (req.body.dump==='true');
+        const certifiedLocation = (req.body.certifiedLocation ==='true');
+        var post;
+        if(req.body.address){
+            const address = await Address.findOrCreate({
+                where:{
+                    address: req.body.address,
+                    geographLong: parseFloat(req.body.geographLong),
+                    geographLat: parseFloat(req.body.geographLat),
+                }
             });
+            post = await Post.update({ 
+                title : req.body.title,
+                description : req.body.description,
+                includeVideo : includeVideo(req.files),
+                starRate: parseFloat(req.body.starRate),
+                certifiedLocation: certifiedLocation,
+                addressId : address.id,
+                sequence : req.body.sequence,
+                dump : dump
+            }, 
+            { 
+                where: { id :  postId } 
+            });
+        }else{
+            post = await Post.update({ 
+                title : req.body.title,
+                description : req.body.description,
+                includeVideo : includeVideo(req.files),
+                starRate: parseFloat(req.body.starRate),
+                certifiedLocation: certifiedLocation,
+                dump : dump
+            }, 
+            { 
+                where: { id :  postId } 
+            });
+        }
+        const descriptions = JSON.parse(req.body.description);
+        const sequence = Array.from(req.body.sequence);
+        var i = 0, len = sequence.length;
+        do {
+            if(sequence[i] === 'D'){
+                var description = descriptions[0];
+                console.log('sequence is Description');
+                await Description.create({
+                    description: description,
+                    index : i+1,
+                    postId : postId
+                }).then(function(){
+                    descriptions.splice(description,1);
+                });
+            }else{
+                console.log('sequence is Mediafile');
+                var file = req.files[0];
+                await MediaFile.create({
+                    originalname : file.originalname,
+                    mimetype : file.mimetype,
+                    filename : file.filename,
+                    size : file.size,
+                    postId : postId,
+                    index : i+1
+                }).then(function(){
+                    req.files.splice(file,1);
+                });
+            }
+            i++; 
+        } while (i < len);
+        if(req.body.mainTag){
+            const mainTagResults = await Tag.findOrCreate({
+                where : {name : req.body.mainTag}
+            });
+            const mainTagResult = mainTagResults[0];
+            var reviewNum = mainTagResult.reviewNum+1;
+            var starRate = (mainTagResult.reviewNum*mainTagResult.starRate+req.body.starRate)/reviewNum;
+            await Tag.update(
+                {
+                starRate : starRate,
+                reviewNum : reviewNum
+              },
+              {where : {
+                  id : mainTagResult.id
+              }}
+            );
+            await post.addTags(mainTagResult);
+            if(req.body.subTag1){
+                var subTag1 = await Tag.findOrCreate({
+                    where : {name : req.body.subTag1}
+                });
             await mainTagResult.addSubTag(parseInt(subTag1[0].id,10));
-        }
-        if(req.body.subTag2){
-            var subTag2 = await Tag.update({
-                where : {name : req.body.subTag2}
-            });
+            }
+            if(req.body.subTag2){
+                var subTag2 = await Tag.findOrCreate({
+                    where : {name : req.body.subTag2}
+                });
             await mainTagResult.addSubTag(parseInt(subTag2[0].id,10));
+            }
         }
+        return res.status(200).json({
+            'message' : 'Update Post!',
+            'post' : post
+        });
     } catch (error) {
         console.error(error);
-        return next(error);
+        return res.status(404).json({
+            'message' : 'Update Post Error',
+            'error' : error
+        });
     }
 });
 

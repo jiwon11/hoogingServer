@@ -19,34 +19,76 @@ fs.readdir('profileImg', (error)=> {
 router.get('/profile', async(req,res,next) => {
     //localhost:8001/user/profile?nickname=jiwon11
   try{
-    const userId = req.query.id;
-    if(userId){
-    const user = await User.findOne({
-      where : { id : userId },
-      attributes : ['id', 'nickname', 'profileImg', 'hoogingAccountBalance'],
-      include : [{
-          model : User,
-          attributes : ['id', 'nickname','profileImg'],
-          as : 'Followers',
-      }, {
-          model : User,
-          attributes : ['id', 'nickname','profileImg'],
-          as : 'Followings',
-      },{
-      model : Post,
-      include : [
-        MediaFile,
-        Description,
-        Comment,
+    const userNickname = req.query.nickname;
+    if(userNickname === req.user.nickname){
+      const user = await User.findOne({
+        where : { nickname : userNickname },
+        attributes : ['id', 'nickname', 'profileImg', 'hoogingAccountBalance'],
+        include : [{
+            model : User,
+            attributes : ['id', 'nickname','profileImg'],
+            as : 'Followers',
+        }, {
+            model : User,
+            attributes : ['id', 'nickname','profileImg'],
+            as : 'Followings',
+        },{
+        model : Post,
+        include : [
+          MediaFile,
+          Description,
+          Comment,
+        ],
+        },{
+          model : Tag
+        }
       ]
-      },{
-        model : Tag
+      });
+      if(user){
+        return res.status(200).json({
+          'user' : user,
+      });
+      } else {
+        return res.status(404).json({
+          'message' : "Can't find User ",
+          'error' : 'Check User Id'
+      });
       }
-    ]
-    });
-    return res.status(200).json({
-        'user' : user,
-    });
+    } else {
+      const user = await User.findOne({
+        where : { nickname : userNickname },
+        attributes : ['id', 'nickname', 'profileImg', 'hoogingAccountBalance'],
+        include : [{
+            model : User,
+            attributes : ['id', 'nickname','profileImg'],
+            as : 'Followers',
+        }, {
+            model : User,
+            attributes : ['id', 'nickname','profileImg'],
+            as : 'Followings',
+        },{
+        model : Post,
+        include : [
+          MediaFile,
+          Description,
+          Comment,
+        ],
+        where :{dump : false}
+        },{
+          model : Tag
+        }
+      ]
+      });
+      if(user){
+        return res.status(200).json({
+          'user' : user,
+      });
+      } else {
+        return res.status(404).json({
+          'message' : "Can't find User ",
+          'error' : 'Check User Id'
+      });
+      }
     }
   } catch(error){
     console.log(error);
@@ -73,7 +115,7 @@ router.post('/profile/update', isLoggedIn, profileUpdate.single('profileImg'), a
     try {
       await User.update({
         nickname : req.body.nickname,
-        profileImg : req.file,
+        profileImg : req.file.filename,
        },{
        where : { id : req.user.id }
       });
@@ -89,12 +131,12 @@ router.post('/profile/update', isLoggedIn, profileUpdate.single('profileImg'), a
   
   });
 
-router.post('/:id/follow', isLoggedIn, async (req, res, next) => {
+router.post('/follow', isLoggedIn, async (req, res, next) => {
   try {
-    const followingUser = await User.find({ where : { id : req.user.id } });
-    const follower = await followingUser.addFollowing(req.params.id);
+    const user = await User.findOne({ where : { id : req.user.id } });
+    await user.addFollowing(req.query.userId);
     res.status(201).json({
-        message : `${followingUser.nickname} follow ${follower.nickname}`
+        message : `follow User`,
     });
   } catch (error) {
         res.status(404).json({
@@ -104,12 +146,12 @@ router.post('/:id/follow', isLoggedIn, async (req, res, next) => {
   }
 });
 
-router.post('/:id/unfollow', isLoggedIn, async (req, res, next) => {
+router.post('/unfollow', isLoggedIn, async (req, res, next) => {
   try{
-      const followingUser = await User.find({ where : { id : req.user.id } });
-      const follower = await followingUser.removeFollowing(req.params.id);
+      const user = await User.findOne({ where : { id : req.user.id } });
+      user.removeFollowing(req.query.userId);
       res.status(201).json({
-        message : `${followingUser.nickname} unfollow ${follower.nickname}`
+        message : `unfollow User`
     });
   } catch (error) {
         res.status(404).json({

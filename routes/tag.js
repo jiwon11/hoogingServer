@@ -4,38 +4,42 @@ const router = express.Router();
 const { Tag,User } = require('../models');
 const { isLoggedIn } = require('./middlewares');
 
-router.post('/:tag/follow',isLoggedIn ,async (req,res, next) => {
+router.post('/follow',isLoggedIn ,async (req,res, next) => {
+  //localhost:8001:/tag/follow?tagId=1
     try {
-        const tag = await Tag.find({ where : { name : req.params.tag } });
-        const user = await User.find({ where : { id : req.user.id } });
-        console.log(`user : ${user.nickname} follow tag : ${tag},`);
-        await user.addtags(parseInt(tag.id, 10));
-        res.status(201).json({
-            'message' : `${user.nickname} follow ${tag.name} Tag`
+        const tag = await Tag.findOne({ where : { id : req.query.tagId } });
+        const user = await User.findOne({ where : { id : req.user.id }, attributes:['id', 'nickname', 'profileImg'] });
+        await user.addTag(parseInt(tag.id, 10));
+        return res.status(201).json({
+            'message' : `Follow Tag`,
+            'user' : user,
+            'tag' : tag
         });
       } catch (error) {
-        res.status(404).json({
+        console.log(error);
+        return res.status(404).json({
           'message' : 'Tag Follow Error',
           'error' : error
       });
-        next(error);
       }
 });
 
-router.post('/:tag/unfollow', isLoggedIn, async (req, res, next) => {
+router.delete('/unfollow', isLoggedIn, async (req, res, next) => {
+  //localhost:8001:/tag/unfollow?tagId=1
     try{
-        const tag = await Tag.find({ where : { name : req.params.tag } });
-        const user = await User.find({ where : { id : req.user.id } });
-        await user.removetags(parseInt(tag.id, 10));
-        res.status(201).json({
-          'message': `${user.nickname} unfollow ${tag.name} Tag`
+        const tag = await Tag.findOne({ where : { id : req.query.tagId }});
+        const user = await User.findOne({ where : { id : req.user.id } , attributes:['id', 'nickname', 'profileImg']});
+        await user.removeTag(parseInt(tag.id, 10));
+        return res.status(201).json({
+          'message' : `UnFollow Tag`,
+          'user' : user,
+          'tag' : tag
       });
     } catch (error) {
-      res.status(404).json({
+      return res.status(404).json({
         'message' : 'Tag unFollow Error',
         'error' : error
     });
-        next(error);
     }
   });
 

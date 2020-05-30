@@ -63,6 +63,7 @@ router.post('/login',isNotLoggedIn, auth.none(), (req, res, next) => {
         }
         req.login(user, (loginError) => {
             if (loginError) {
+                console.log(loginError);
                 console.error(loginError);
                 return res.status(400).json({
                     'error' : 'loginError',
@@ -135,6 +136,8 @@ router.get('kakao/callback', passport.authenticate('kakao', {
 router.get('/logout',isLoggedIn, (req,res) => {
     req.logout();
     req.session.destroy();
-    res.redirect('/');
+    res.status(200).json({
+        'message' : 'Logged out'
+    });
 });
 module.exports = router;

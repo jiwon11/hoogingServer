@@ -15,6 +15,8 @@ const userRouter = require('./routes/user');
 const likeRouter = require('./routes/like');
 const tagRouter = require('./routes/tag');
 const commentRouter = require('./routes/comment');
+const feedRouter = require('./routes/feed');
+
 const { sequelize } = require('./models');
 const passportConfig = require('./passport');
 
@@ -52,6 +54,7 @@ app.use('/tag', tagRouter);
 app.use('/like', likeRouter);
 app.use('/user', userRouter);
 app.use('/comment', commentRouter);
+app.use('/feed', feedRouter);
 
 app.use((req, res, next) => {
   const err = new Error('Not Found');

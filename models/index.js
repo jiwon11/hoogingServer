@@ -20,7 +20,6 @@ db.MediaFile = require('./mediaFile')(sequelize, Sequelize);
 db.Description = require('./description')(sequelize, Sequelize);
 db.Address = require('./address')(sequelize, Sequelize);
 db.Search = require('./search')(sequelize, Sequelize);
-db.Like = require('./like')(sequelize, Sequelize);
 
 
 db.User.hasMany(db.Post);
@@ -35,8 +34,8 @@ db.Post.hasMany(db.MediaFile);
 db.MediaFile.belongsTo(db.Post);
 db.Post.hasMany(db.Description);
 db.Description.belongsTo(db.Post);
-db.Post.belongsToMany(db.Tag, {through : 'PostTag'});
-db.Tag.belongsToMany(db.Post, {through : 'PostTag'});
+db.Post.belongsTo(db.Tag);
+db.Tag.hasMany(db.Post);
 db.Post.belongsTo(db.Address);
 db.Address.hasMany(db.Post);
 db.Post.hasMany(db.Comment);
@@ -76,5 +75,16 @@ db.User.belongsToMany(db.Tag, {
 });
 db.Tag.belongsToMany(db.User, {
   through : 'TagFollow',
+});
+
+db.User.belongsToMany(db.Post, {
+  as : 'LikePost',
+  through : 'Like',
+  foreignKey : 'LikerId'
+});
+db.Post.belongsToMany(db.User, {
+  as : 'Liker',
+  through : 'Like',
+  foreignKey : 'LikePostId'
 });
 module.exports = db;
