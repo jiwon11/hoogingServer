@@ -224,7 +224,7 @@ router.get('/', isLoggedIn ,async (req, res, next) => {
         });
      }else {
         return res.status(404).json({
-            'message' : 'Find post Error',
+            'message' : "Can't find Post!!",
             'error' : 'check postId',
         });
      }
