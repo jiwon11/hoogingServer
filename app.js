@@ -16,6 +16,7 @@ const likeRouter = require('./routes/like');
 const tagRouter = require('./routes/tag');
 const commentRouter = require('./routes/comment');
 const feedRouter = require('./routes/feed');
+const openBankingRouter = require('./routes/openbanking');
 
 const { sequelize } = require('./models');
 const passportConfig = require('./passport');
@@ -26,7 +27,7 @@ passportConfig(passport);
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
-app.set('port', process.env.PORT || 8001);
+app.set('port', process.env.PORT || 3000);
 
 app.use(morgan('dev'));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -55,6 +56,7 @@ app.use('/like', likeRouter);
 app.use('/user', userRouter);
 app.use('/comment', commentRouter);
 app.use('/feed', feedRouter);
+app.use('/openBanking', openBankingRouter);
 
 app.use((req, res, next) => {
   const err = new Error('Not Found');
