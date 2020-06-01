@@ -9,7 +9,7 @@ const multer = require('multer');
 const router = express.Router();
 const auth = multer();
 
-router.post('/signUp', isNotLoggedIn ,auth.none(),async(req, res, next) => {
+router.post('/signUp', auth.none(),async(req, res, next) => {
     const {email, nickname, password, birthdate, gender  } = req.body;
     try {
         const exUser = await User.findOne({ where : { email : email } , attributes :['email', 'provider']});
