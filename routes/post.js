@@ -65,15 +65,6 @@ const includeVideo = function includeVideo(files) {
     return includeVideo;
 };
 
-function getIndex(ele) {
-    var _i = 0;
-    while((ele = ele.previousSibling) != null ) {
-      _i++;
-    }
-  
-    return _i;
-  }
-
 const upload2 = multer();
 router.post('/upload', isLoggedIn ,upload.array('mediaFile'), async (req, res, next) => {
     console.log(req.files);
