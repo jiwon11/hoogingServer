@@ -76,7 +76,6 @@ db.User.belongsToMany(db.Tag, {
 db.Tag.belongsToMany(db.User, {
   through : 'TagFollow',
 });
-
 db.User.belongsToMany(db.Post, {
   as : 'LikePost',
   through : 'Like',
@@ -86,5 +85,15 @@ db.Post.belongsToMany(db.User, {
   as : 'Liker',
   through : 'Like',
   foreignKey : 'LikePostId'
+});
+db.User.belongsToMany(db.Post, {
+  as : 'ScrapPost',
+  through : 'Scrap',
+  foreignKey : 'userId'
+});
+db.Post.belongsToMany(db.User, {
+  as : 'Scraper',
+  through : 'Scrap',
+  foreignKey : 'ScrapPostId'
 });
 module.exports = db;

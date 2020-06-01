@@ -265,46 +265,42 @@ router.delete('/mediaFile/delete', isLoggedIn, async(req, res, next) => {
 
 router.post('/update', isLoggedIn, upload.array('mediaFile'), async (req, res, next) => {
     const postId = req.query.postId;
-    console.log(req.body);
+    console.log(parseFloat(req.body.geographLong));
     /* sequence에 맞는 이미지와 글을 정렬하는 코드 추가*/
     try {
         const dump = (req.body.dump==='true');
         const certifiedLocation = (req.body.certifiedLocation ==='true');
-        var post;
-        if(req.body.address){
-            const address = await Address.findOrCreate({
-                where:{
-                    address: req.body.address,
-                    geographLong: parseFloat(req.body.geographLong),
-                    geographLat: parseFloat(req.body.geographLat),
-                }
-            });
-            post = await Post.update({ 
-                title : req.body.title,
-                description : req.body.description,
-                includeVideo : includeVideo(req.files),
-                starRate: parseFloat(req.body.starRate),
-                certifiedLocation: certifiedLocation,
-                addressId : address.id,
-                sequence : req.body.sequence,
-                dump : dump
-            }, 
-            { 
-                where: { id :  postId } 
-            });
-        }else{
-            post = await Post.update({ 
-                title : req.body.title,
-                description : req.body.description,
-                includeVideo : includeVideo(req.files),
-                starRate: parseFloat(req.body.starRate),
-                certifiedLocation: certifiedLocation,
-                dump : dump
-            }, 
-            { 
-                where: { id :  postId } 
-            });
-        }
+        const address = await Address.findOrCreate({
+            where:{
+                address: req.body.address,
+                geographLong: parseFloat(req.body.geographLong),
+                geographLat: parseFloat(req.body.geographLat),
+            }
+        });
+        post = await Post.update({ 
+            title : req.body.title,
+            description : req.body.description,
+            includeVideo : includeVideo(req.files),
+            starRate: parseFloat(req.body.starRate),
+            certifiedLocation: certifiedLocation,
+            addressId : address.id,
+            sequence : req.body.sequence,
+            dump : dump
+        }, 
+        { 
+            where: { id :  postId } 
+        });
+        await MediaFile.destroy({
+            where : {
+                postId : postId
+            }
+        });
+        await Description.destroy({
+            where : {
+                postId : postId
+            }
+        });
+        console.log('===================================================');
         const descriptions = JSON.parse(req.body.description);
         const sequence = Array.from(req.body.sequence);
         var i = 0, len = sequence.length;
@@ -327,7 +323,7 @@ router.post('/update', isLoggedIn, upload.array('mediaFile'), async (req, res, n
                     mimetype : file.mimetype,
                     filename : file.filename,
                     size : file.size,
-                    postId : postId,
+                    postId : post.id,
                     index : i+1
                 }).then(function(){
                     req.files.splice(file,1);
@@ -378,4 +374,53 @@ router.post('/update', isLoggedIn, upload.array('mediaFile'), async (req, res, n
     }
 });
 
+router.post('/scrap', isLoggedIn, async(req,res,next) => {
+    try{
+        var userId = req.user.id;
+        var postId = req.query.postId;
+        const post = await Post.findOne({where : {id : postId}});
+        if(userId !== post.userId){
+            await post.addScraper(parseInt(userId,10));
+            return res.status(201).json({
+                'message' : `Scrap Post`,
+                'user' : user,
+                'post' : post
+            });
+        }else{
+            return res.status(403).json({
+                'message' : `You Don't have authority`,
+            });
+        }
+    } catch (error) {
+        console.log(error);
+        return res.status(404).json({
+            'message' : 'User Scrap Post Error',
+            'error' : error
+        });
+    }
+});
+
+router.delete('/scrap', isLoggedIn, async(req,res,next) => {
+    try{
+        var userId = req.user.id;
+        var postId = req.query.postId;
+        const post = await Post.findOne({where : {id : postId}});
+        if(userId !== post.userId){
+            await post.removeScraper(parseInt(userId,10));
+            return res.status(204).json({
+                'message' : `Post Scrap Delete`,
+            });
+        }else{
+            return res.status(200).json({
+                'message' : `You Don't have authority`,
+            });
+        }
+    } catch (error) {
+        console.log(error);
+        return res.status(404).json({
+            'message' : 'User Scrap Post Delete Error',
+            'error' : error
+        });
+    }
+});
 module.exports = router;
