@@ -5,7 +5,12 @@ const AWS = require('aws-sdk');
 const multerS3 = require('multer-s3');
 const multer = require('multer');
 const sequelize = require('sequelize');
-const { Post, Tag, User, MediaFile, Address, Comment, Like,Description } = require('../models');
+const axios = require("axios");
+const cheerio = require("cheerio");
+const iconv = require('iconv-lite');
+const charset = require('charset');
+const Url = require('url');
+const { Post, Tag, User, MediaFile, Address, Comment, Like,Description,Product } = require('../models');
 const { isLoggedIn } = require('./middlewares');
 
 const router = express.Router();
@@ -70,9 +75,11 @@ router.post('/upload', isLoggedIn ,upload.array('mediaFile'), async (req, res, n
     console.log(req.files);
     try {
         const address = await Address.create({
+            where : {
             address: req.body.address,
             geographLong: parseFloat(req.body.geographLong),
             geographLat: parseFloat(req.body.geographLat),
+            }
         });
         const mainTagResults = await Tag.findOrCreate({
             where : {name : req.body.mainTag}
@@ -144,6 +151,21 @@ router.post('/upload', isLoggedIn ,upload.array('mediaFile'), async (req, res, n
             }
             i++; 
         } while (i < len);
+        var products = JSON.parse(req.body.products);
+        products = Array.from(products);
+        for(const prod of products){
+            const product = await Product.findOrCreate({
+                where :{
+                title : prod['title'],
+                description : prod['description'],
+                image : prod['image'],
+                url : prod['url'],
+                site : prod['site'],
+                favicon : prod['favicon']
+                }
+            });
+            await post.addProduct(product[0].id);
+        }
     return res.status(201).json({
         'message' : 'Create New Post!',
         'post' : post
@@ -172,7 +194,7 @@ router.get('/', isLoggedIn ,async (req, res, next) => {
             },{
             model : User,
             through : 'Like',
-            as : 'Liker',
+            as : 'Likers',
             attributes : ['id', 'nickname','profileImg'],
             }, {
                 model : MediaFile,
@@ -186,6 +208,12 @@ router.get('/', isLoggedIn ,async (req, res, next) => {
                 model : Tag,
                 attributes : ['name', 'starRate', 'reviewNum'],
                 include : [{model : Tag, as : 'SubTags',attributes : ['name', 'starRate', 'reviewNum']}]
+            },
+            {
+                model : Product,
+                through : 'reviewProduct',
+                as : 'Products',
+                attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
             }
         ], 
      });
@@ -265,7 +293,6 @@ router.delete('/mediaFile/delete', isLoggedIn, async(req, res, next) => {
 
 router.post('/update', isLoggedIn, upload.array('mediaFile'), async (req, res, next) => {
     const postId = req.query.postId;
-    console.log(parseFloat(req.body.geographLong));
     /* sequence에 맞는 이미지와 글을 정렬하는 코드 추가*/
     try {
         const dump = (req.body.dump==='true');
@@ -277,7 +304,10 @@ router.post('/update', isLoggedIn, upload.array('mediaFile'), async (req, res, n
                 geographLat: parseFloat(req.body.geographLat),
             }
         });
-        post = await Post.update({ 
+        const post = await Post.findOne({
+            where : { id :  postId } 
+        });
+        await Post.update({ 
             title : req.body.title,
             description : req.body.description,
             includeVideo : includeVideo(req.files),
@@ -331,6 +361,34 @@ router.post('/update', isLoggedIn, upload.array('mediaFile'), async (req, res, n
             }
             i++; 
         } while (i < len);
+        var products = JSON.parse(req.body.products);
+        products = Array.from(products);
+        const previousProduct = await Product.findAll({
+            include : [{
+                model : Post,
+                through : 'reviewProduct',
+                as : 'ProductPosts',
+                where : {
+                    id : postId
+                }
+            }]
+        });
+        await post.removeProduct(previousProduct)
+        .then(async()=>{
+            for(const prod of products){
+                const product = await Product.findOrCreate({
+                    where :{
+                    title : prod['title'],
+                    description : prod['description'],
+                    image : prod['image'],
+                    url : prod['url'],
+                    site : prod['site'],
+                    favicon : prod['favicon']
+                    }
+                });
+                await post.addProduct(product[0].id);
+            }
+        });
         if(req.body.mainTag){
             const mainTagResults = await Tag.findOrCreate({
                 where : {name : req.body.mainTag}
@@ -422,5 +480,56 @@ router.delete('/scrap', isLoggedIn, async(req,res,next) => {
             'error' : error
         });
     }
+});
+
+async function getHtml(url) {
+    try {
+      return await axios.get(url,{responseEncoding: 'binary'});
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+router.post('/productUrl', isLoggedIn, async(req,res,next) =>{
+    const productUrl = req.query.productUrl;
+    var response = await getHtml(productUrl);
+    const enc = charset(response.headers, response.data);
+    var html = iconv.decode(response.data,enc);
+    const $ = cheerio.load(html);
+    const ogs={};
+    var title = $("meta[property='og:title']").attr("content");
+    if(title === undefined){
+        title = $("html>head>title").text();
+    }
+    var description = $("meta[property='og:description']").attr("content");
+    if(description === undefined){
+        description = ($("meta[name='description']").attr("content"))? $("meta[name='desciption']").attr("content"): '';
+    }
+    var image = $("meta[property='og:image']").attr("content");
+    if(image === undefined){
+        image = $("html>body>img")[0].attr('src');
+    }
+    var url = $("meta[property='og:url']").attr("content");
+    if(url === undefined){
+        url =productUrl;
+    }
+    var site = $("meta[property='og:site_name']").attr("content");
+    if(site === undefined){
+        var parsedObject = Url.parse(productUrl);
+        var urlRe = new RegExp('(.com)|(.co.kr)');
+        site = parsedObject.hostname.replace('www.','').replace(urlRe,'');
+    }
+    var favicon = $("link[rel='shortcut icon']").attr("href");
+    var faviconUrl = Url.parse(favicon);
+    if(faviconUrl.protocol !=='https:' && faviconUrl.protocol !=='http:'){
+        favicon = 'https:'+favicon;
+    }
+    ogs.title = title;
+    ogs.description = description;
+    ogs.image = image;
+    ogs.url = url;
+    ogs.site = site;
+    ogs.favicon = favicon;
+    res.status(200).json(ogs);
 });
 module.exports = router;

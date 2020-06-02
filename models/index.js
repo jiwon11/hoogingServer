@@ -20,26 +20,28 @@ db.MediaFile = require('./mediaFile')(sequelize, Sequelize);
 db.Description = require('./description')(sequelize, Sequelize);
 db.Address = require('./address')(sequelize, Sequelize);
 db.Search = require('./search')(sequelize, Sequelize);
+db.Product = require('./product')(sequelize, Sequelize);
+db.Verify = require('./verify')(sequelize, Sequelize);
 
 
 db.User.hasMany(db.Post);
-db.Post.belongsTo(db.User);
+db.Post.belongsTo(db.User,{ onDelete: 'CASCADE'});
 db.User.hasMany(db.Comment);
-db.Comment.belongsTo(db.User);
+db.Comment.belongsTo(db.User,{ onDelete: 'CASCADE'});
 db.User.hasMany(db.Account);
-db.Account.belongsTo(db.User);
+db.Account.belongsTo(db.User,{ onDelete: 'CASCADE'});
 db.User.hasMany(db.Search);
-db.Search.belongsTo(db.User);
+db.Search.belongsTo(db.User,{ onDelete: 'CASCADE'});
 db.Post.hasMany(db.MediaFile);
-db.MediaFile.belongsTo(db.Post);
+db.MediaFile.belongsTo(db.Post,{ onDelete: 'CASCADE'});
 db.Post.hasMany(db.Description);
-db.Description.belongsTo(db.Post);
+db.Description.belongsTo(db.Post,{ onDelete: 'CASCADE'});
 db.Post.belongsTo(db.Tag);
 db.Tag.hasMany(db.Post);
 db.Post.belongsTo(db.Address);
 db.Address.hasMany(db.Post);
 db.Post.hasMany(db.Comment);
-db.Comment.belongsTo(db.Post);
+db.Comment.belongsTo(db.Post,{ onDelete: 'CASCADE'});
 db.Comment.belongsToMany(db.Comment,{
   foreignKey : 'commentId',
   as : 'replys',
@@ -48,17 +50,20 @@ db.Comment.belongsToMany(db.Comment,{
 db.Comment.belongsTo(db.Comment,{
   foreignKey : 'replyId',
   as : 'comments',
-  through : 'Reply'
+  through : 'Reply', 
+  onDelete: 'CASCADE'
 });
 db.User.belongsToMany(db.User, {
   foreignKey : 'followingId',
   as : 'Followers',
   through : 'UserFollow',
+  onDelete: 'CASCADE'
 });
 db.User.belongsToMany(db.User, {
   foreignKey : 'followerId',
   as : 'Followings',
   through : 'UserFollow',
+  onDelete: 'CASCADE'
 });
 db.Tag.belongsToMany(db.Tag, {
   foreignKey : 'mainTagId',
@@ -77,23 +82,33 @@ db.Tag.belongsToMany(db.User, {
   through : 'TagFollow',
 });
 db.User.belongsToMany(db.Post, {
-  as : 'LikePost',
+  as : 'LikePosts',
   through : 'Like',
   foreignKey : 'LikerId'
 });
 db.Post.belongsToMany(db.User, {
-  as : 'Liker',
+  as : 'Likers',
   through : 'Like',
   foreignKey : 'LikePostId'
 });
 db.User.belongsToMany(db.Post, {
-  as : 'ScrapPost',
+  as : 'ScrapPosts',
   through : 'Scrap',
   foreignKey : 'userId'
 });
 db.Post.belongsToMany(db.User, {
-  as : 'Scraper',
+  as : 'Scrapers',
   through : 'Scrap',
   foreignKey : 'ScrapPostId'
+});
+db.Product.belongsToMany(db.Post, {
+  foreignKey : 'productId',
+  as : 'ProductPosts',
+  through : 'reviewProduct',
+});
+db.Post.belongsToMany(db.Product, {
+  foreignKey : 'postId',
+  as : 'Products',
+  through : 'reviewProduct',
 });
 module.exports = db;
