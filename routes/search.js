@@ -19,6 +19,7 @@ router.get('/', isLoggedIn ,async(req,res,next) => {
         if(query === '' || category === ''){
             const recentSearchResults = await Search.findAll({
                 where:{
+                    deletedAt : null,
                     userId: req.user.id
                 },
                 order: [['updatedAt', 'DESC']]
@@ -34,6 +35,7 @@ router.get('/', isLoggedIn ,async(req,res,next) => {
                     await Promise.all(queries.map(query => {
                         Search.findOrCreate({
                             where : {
+                                deletedAt : null,
                                 query : query,
                                 category : category,
                                 userId : req.user.id
@@ -48,6 +50,7 @@ router.get('/', isLoggedIn ,async(req,res,next) => {
                     tagQueryResults = await Promise.all(queries.map(query => 
                         Tag.findAll({
                             where:{
+                                deletedAt : null,
                                 name: {
                                     [Op.like]: "%" + query + "%"
                                 }
@@ -68,6 +71,7 @@ router.get('/', isLoggedIn ,async(req,res,next) => {
                 if(category ==='user'){
                     const userQueryResults = await User.findAll({
                         where:{
+                            deletedAt : null,
                             nickname: {
                                 [Op.like]: "%" + query + "%"
                             }
@@ -95,6 +99,7 @@ router.get('/', isLoggedIn ,async(req,res,next) => {
                 if(category ==='address'){
                     const adressQueryResults = await Address.findAll({
                         where:{
+                            deletedAt : null,
                             address: {
                                 [Op.like]: "%" + query + "%"
                             }
@@ -115,6 +120,7 @@ router.get('/', isLoggedIn ,async(req,res,next) => {
             else{
                 const popularQueryResults = await Search.findAll({
                     where:{
+                        deletedAt : null,
                         query: {
                             [Op.like]: "%" + query + "%"
                         }

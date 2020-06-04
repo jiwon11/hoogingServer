@@ -22,6 +22,7 @@ db.Address = require('./address')(sequelize, Sequelize);
 db.Search = require('./search')(sequelize, Sequelize);
 db.Product = require('./product')(sequelize, Sequelize);
 db.Verify = require('./verify')(sequelize, Sequelize);
+db.Collection = require('./collection')(sequelize, Sequelize);
 
 
 db.User.hasMany(db.Post);
@@ -110,5 +111,17 @@ db.Post.belongsToMany(db.Product, {
   foreignKey : 'postId',
   as : 'Products',
   through : 'reviewProduct',
+});
+db.User.hasMany(db.Collection);
+db.Collection.belongsTo(db.User,{ onDelete: 'CASCADE'});
+db.Collection.belongsToMany(db.Post, {
+  foreignKey : 'collectionId',
+  as : 'Posts',
+  through : 'CollectionPost',
+});
+db.Post.belongsToMany(db.Collection, {
+  foreignKey : 'postId',
+  as : 'Collections',
+  through : 'CollectionPost',
 });
 module.exports = db;

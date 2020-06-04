@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const{ isLoggedIn } = require('./middlewares');
-const { Post,Tag,User,Comment,Like,MediaFile,Description } = require('../models');
+const { Post,Tag,User,Comment,Like,MediaFile,Description,Product } = require('../models');
 const Sequelize = require('sequelize');
 const op = Sequelize.Op;
 
@@ -34,10 +34,17 @@ router.get('/profile', async(req,res,next) => {
             as : 'Followings',
         },{
         model : Post,
+        where : {
+          deletedAt : null,
+        },
         include : [
           MediaFile,
           Description,
           Comment,
+          {
+            model : Product,
+            as : 'Products'
+          }
         ],
         },{
           model : Tag
@@ -72,8 +79,15 @@ router.get('/profile', async(req,res,next) => {
           MediaFile,
           Description,
           Comment,
+          {
+            model : Product,
+            as : 'Products'
+          }
         ],
-        where :{dump : false}
+        where :{
+          dump : false,
+          deletedAt : null,
+        }
         },{
           model : Tag
         }

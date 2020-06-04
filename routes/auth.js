@@ -177,7 +177,7 @@ router.get('/confirmEmail', isNotLoggedIn, async(req,res) => {
             [Op.gt]: new Date(new Date() - 5 * 60 * 1000)
           }
         }
-      }).then((Verify) => { // 유저데이터 호출
+      }).then((Verify) => {
         res.status(200).json({
             'message' : 'Be certified!',
             'Verify' : Verify

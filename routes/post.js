@@ -74,7 +74,7 @@ const upload2 = multer();
 router.post('/upload', isLoggedIn ,upload.array('mediaFile'), async (req, res, next) => {
     console.log(req.files);
     try {
-        const address = await Address.create({
+        const address = await Address.findOrCreate({
             where : {
             address: req.body.address,
             geographLong: parseFloat(req.body.geographLong),
@@ -115,7 +115,7 @@ router.post('/upload', isLoggedIn ,upload.array('mediaFile'), async (req, res, n
             includeVideo : includeVideo(req.files),
             starRate: parseFloat(req.body.starRate),
             certifiedLocation: (req.body.certifiedLocation ==='true'),
-            addressId : address.id,
+            addressId : address[0].id,
             tagId : mainTagResult.id,
             sequence : req.body.sequence,
             dump : (req.body.dump ==='true')
@@ -185,7 +185,9 @@ router.get('/', isLoggedIn ,async (req, res, next) => {
     }
     try{
     const post = await Post.findOne({ 
-        where : { id : postId },
+        where : { id : postId,
+            deletedAt : null, 
+        },
         include : [{
             model : User,
             attributes : ['id', 'nickname','profileImg'],
@@ -313,7 +315,7 @@ router.post('/update', isLoggedIn, upload.array('mediaFile'), async (req, res, n
             includeVideo : includeVideo(req.files),
             starRate: parseFloat(req.body.starRate),
             certifiedLocation: certifiedLocation,
-            addressId : address.id,
+            addressId : address[0].id,
             sequence : req.body.sequence,
             dump : dump
         }, 
