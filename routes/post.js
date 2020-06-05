@@ -14,7 +14,9 @@ const { Post, Tag, User, MediaFile, Address, Comment, Like,Description,Product }
 const { isLoggedIn } = require('./middlewares');
 
 const router = express.Router();
-
+/*
+post를 include 하는 경우가 많으므로 post 로드용 객체를 모듈로 생성
+ */
 fs.readdir('uploads', (error) => {
   if (error) {
     console.error('uploads 폴더가 없어 uploads 폴더를 생성합니다.');
@@ -85,8 +87,8 @@ router.post('/upload', isLoggedIn ,upload.array('mediaFile'), async (req, res, n
             where : {name : req.body.mainTag}
         });
         const mainTagResult = mainTagResults[0];
-        var reviewNum = mainTagResult.reviewNum+1;
-        var starRate = (parseFloat(mainTagResult.reviewNum)*parseFloat(mainTagResult.starRate)+parseFloat(req.body.starRate))/parseFloat(reviewNum);
+        var starRate = (parseFloat(mainTagResult.reviewNum)*parseFloat(mainTagResult.starRate)+parseFloat(req.body.starRate))/(parseFloat(mainTagResult.reviewNum)+1);
+        console.log('starRate :', starRate);
         await Tag.update(
             {
             starRate : starRate,
@@ -96,17 +98,33 @@ router.post('/upload', isLoggedIn ,upload.array('mediaFile'), async (req, res, n
               id : mainTagResult.id
           }}
         );
+        var subTag1;
         if(req.body.subTag1){
-            var subTag1 = await Tag.findOrCreate({
+            subTag1 = await Tag.findOrCreate({
                 where : {name : req.body.subTag1}
             });
-            await mainTagResult.addSubTag(parseInt(subTag1[0].id,10));
+            await Tag.update(
+                {
+                reviewNum : sequelize.literal('reviewNum + 1'),
+              },
+              {where : {
+                  id : subTag1[0].id
+              }}
+            );
         }
+        var subTag2;
         if(req.body.subTag2){
-            var subTag2 = await Tag.findOrCreate({
+            subTag2 = await Tag.findOrCreate({
                 where : {name : req.body.subTag2}
             });
-            await mainTagResult.addSubTag(parseInt(subTag2[0].id,10));
+            await Tag.update(
+                {
+                reviewNum : sequelize.literal('reviewNum + 1'),
+              },
+              {where : {
+                  id : subTag2[0].id
+              }}
+            );
         }
         const post = await Post.create({
             userId: req.user.id,
@@ -116,7 +134,9 @@ router.post('/upload', isLoggedIn ,upload.array('mediaFile'), async (req, res, n
             starRate: parseFloat(req.body.starRate),
             certifiedLocation: (req.body.certifiedLocation ==='true'),
             addressId : address[0].id,
-            tagId : mainTagResult.id,
+            mainTagId : mainTagResult.id,
+            subTagOneId : subTag1[0].id,
+            subTagTwoId : subTag2[0].id,
             sequence : req.body.sequence,
             dump : (req.body.dump ==='true')
         });
@@ -193,7 +213,14 @@ router.get('/', isLoggedIn ,async (req, res, next) => {
             attributes : ['id', 'nickname','profileImg'],
             }, {
                 model : Tag,
-            },{
+                as : 'mainTags'
+            }, {
+                model : Tag,
+                as : 'subTagOnes'
+            }, {
+                model : Tag,
+                as : 'subTagTwos'
+            }, {
             model : User,
             through : 'Like',
             as : 'Likers',
@@ -205,11 +232,6 @@ router.get('/', isLoggedIn ,async (req, res, next) => {
             {
                 model : Description,
                 attributes : ['id', 'description', 'index'],
-            },
-            {
-                model : Tag,
-                attributes : ['name', 'starRate', 'reviewNum'],
-                include : [{model : Tag, as : 'SubTags',attributes : ['name', 'starRate', 'reviewNum']}]
             },
             {
                 model : Product,

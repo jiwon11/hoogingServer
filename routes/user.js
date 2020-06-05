@@ -15,8 +15,8 @@ fs.readdir('profileImg', (error)=> {
   }
 });
 /* GET users listing. */
-
-router.get('/profile', async(req,res,next) => {
+//dump를 삼항연산자를 통해 간결한 코드 작성
+router.get('/profile', isLoggedIn,async(req,res,next) => {
     //localhost:8001/user/profile?nickname=jiwon11
   try{
     const userNickname = req.query.nickname;
@@ -38,13 +38,37 @@ router.get('/profile', async(req,res,next) => {
           deletedAt : null,
         },
         include : [
-          MediaFile,
-          Description,
-          Comment,
           {
-            model : Product,
-            as : 'Products'
-          }
+            model : User,
+            attributes : ['id', 'nickname','profileImg'],
+            }, {
+                model : Tag,
+                as : 'mainTags'
+            }, {
+                model : Tag,
+                as : 'subTagOnes'
+            }, {
+                model : Tag,
+                as : 'subTagTwos'
+            }, {
+            model : User,
+            through : 'Like',
+            as : 'Likers',
+            attributes : ['id', 'nickname','profileImg'],
+            }, {
+                model : MediaFile,
+                attributes : ['id', 'filename', 'size', 'mimetype', 'index'],
+            },
+            {
+                model : Description,
+                attributes : ['id', 'description', 'index'],
+            },
+            {
+                model : Product,
+                through : 'reviewProduct',
+                as : 'Products',
+                attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
+            }
         ],
         },{
           model : Tag
@@ -76,13 +100,37 @@ router.get('/profile', async(req,res,next) => {
         },{
         model : Post,
         include : [
-          MediaFile,
-          Description,
-          Comment,
           {
-            model : Product,
-            as : 'Products'
-          }
+            model : User,
+            attributes : ['id', 'nickname','profileImg'],
+            }, {
+                model : Tag,
+                as : 'mainTags'
+            }, {
+                model : Tag,
+                as : 'subTagOnes'
+            }, {
+                model : Tag,
+                as : 'subTagTwos'
+            }, {
+            model : User,
+            through : 'Like',
+            as : 'Likers',
+            attributes : ['id', 'nickname','profileImg'],
+            }, {
+                model : MediaFile,
+                attributes : ['id', 'filename', 'size', 'mimetype', 'index'],
+            },
+            {
+                model : Description,
+                attributes : ['id', 'description', 'index'],
+            },
+            {
+                model : Product,
+                through : 'reviewProduct',
+                as : 'Products',
+                attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
+            }
         ],
         where :{
           dump : false,

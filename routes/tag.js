@@ -1,8 +1,40 @@
 const express = require('express');
 const router = express.Router();
-
-const { Tag,User } = require('../models');
+const {Op} = require('sequelize');
+const { Post, Tag, User, MediaFile, Address, Comment, Like,Description,Product } = require('../models');
 const { isLoggedIn } = require('./middlewares');
+
+router.get('/', isLoggedIn, async(req,res) => {
+  try{
+    const tagIds = req.query.tagIds.split(',');
+    const category = req.query.category;
+    const order = req.query.order; //hits | createdAt
+    const tagIdsInt = tagIds.map((id)=> parseInt(id,10));
+    if(category === 'post'){
+        const posts = await Post.findAll({
+          where : {
+            [Op.or] : [
+              {mainTagId : {[Op.or]: tagIdsInt}},
+              {subTagOneId : {[Op.or]: tagIdsInt}},
+              {subTagTwoId : {[Op.or]: tagIdsInt}},
+            ]
+          },
+          order : [
+            [order, 'DESC']
+          ]
+        });
+      return res.status(200).json(posts);
+    }else if(category === 'collection'){
+    }
+  } catch(error){
+    console.log(error);
+    res.status(404).json({
+      'message' : 'Tag Post Get Error',
+      'error': error
+    });
+  }
+});
+
 
 router.post('/follow',isLoggedIn ,async (req,res, next) => {
   //localhost:8001:/tag/follow?tagId=1

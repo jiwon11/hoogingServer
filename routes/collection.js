@@ -17,12 +17,38 @@ router.get('/', isLoggedIn ,async(req, res) =>{
                 model : Post,
                 as : 'Posts',
                 include : [
-                    Address,
-                    MediaFile,
-                    Description,{
-                    model : Product,
-                    as : 'Products'
-                }]
+                    {
+                        model : User,
+                        attributes : ['id', 'nickname','profileImg'],
+                        }, {
+                            model : Tag,
+                            as : 'mainTags'
+                        }, {
+                            model : Tag,
+                            as : 'subTagOnes'
+                        }, {
+                            model : Tag,
+                            as : 'subTagTwos'
+                        }, {
+                        model : User,
+                        through : 'Like',
+                        as : 'Likers',
+                        attributes : ['id', 'nickname','profileImg'],
+                        }, {
+                            model : MediaFile,
+                            attributes : ['id', 'filename', 'size', 'mimetype', 'index'],
+                        },
+                        {
+                            model : Description,
+                            attributes : ['id', 'description', 'index'],
+                        },
+                        {
+                            model : Product,
+                            through : 'reviewProduct',
+                            as : 'Products',
+                            attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
+                        }
+                    ]
             }]
         });
         return res.status(200).json({
@@ -43,7 +69,8 @@ router.post('/create', isLoggedIn, collection.none() ,async(req, res) =>{
         const name = req.body.name;
         await Collection.create({
             name : name,
-            userId : req.user.id
+            userId : req.user.id,
+            open : req.body.open
         });
         return res.status(201).json({
             'message' : 'Create Collection!'
@@ -164,6 +191,37 @@ router.delete('/delete', isLoggedIn, collection.none() ,async(req, res) =>{
     }
 });
 
+router.post('/like', isLoggedIn, async(req, res) => {
+    try{
+        const collectionId = req.query.collectionId;
+        await Collection.increment('Like',{where : {id : collectionId }});
+        return res.status(201).json({
+            'message' : 'Collection Like Post',
+        });
+    } catch(error){
+        console.log(error);
+        res.status(404).json({
+            'message' : 'Collection Like Post Error',
+            'error' : error
+        });
+    }
+});
+
+router.delete('/like', isLoggedIn, async(req, res) => {
+    try{
+        const collectionId = req.query.collectionId;
+        await Collection.decrement('Like',{where : {id : collectionId }});
+        return res.status(201).json({
+            'message' : 'Collection Like Delete',
+        });
+    } catch(error){
+        console.log(error);
+        res.status(404).json({
+            'message' : 'Collection Like Delete Error',
+            'error' : error
+        });
+    }
+});
 
 
 module.exports = router;

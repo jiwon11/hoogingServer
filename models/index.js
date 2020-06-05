@@ -37,7 +37,9 @@ db.Post.hasMany(db.MediaFile);
 db.MediaFile.belongsTo(db.Post,{ onDelete: 'CASCADE'});
 db.Post.hasMany(db.Description);
 db.Description.belongsTo(db.Post,{ onDelete: 'CASCADE'});
-db.Post.belongsTo(db.Tag);
+db.Post.belongsTo(db.Tag, { as:'mainTags', foreignKey: 'mainTagId'});
+db.Post.belongsTo(db.Tag, { as:'subTagOnes', foreignKey: 'subTagOneId'});
+db.Post.belongsTo(db.Tag, { as:'subTagTwos', foreignKey: 'subTagTwoId'});
 db.Tag.hasMany(db.Post);
 db.Post.belongsTo(db.Address);
 db.Address.hasMany(db.Post);
@@ -65,16 +67,6 @@ db.User.belongsToMany(db.User, {
   as : 'Followings',
   through : 'UserFollow',
   onDelete: 'CASCADE'
-});
-db.Tag.belongsToMany(db.Tag, {
-  foreignKey : 'mainTagId',
-  as : 'SubTags',
-  through : 'MainTagSubTag',
-});
-db.Tag.belongsToMany(db.Tag, {
-  foreignKey : 'subTagId',
-  as : 'MainTags',
-  through : 'MainTagSubTag',
 });
 db.User.belongsToMany(db.Tag, {
   through : 'TagFollow',

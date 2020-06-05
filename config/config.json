@@ -8,8 +8,7 @@
     "dialect": "mysql",
     "logging": false,
     "charset": "utf8",
-    "collate": "utf8_general_ci",
-    "timezone": "+09:00"
+    "collate": "utf8_general_ci"
   },
   "test": {
     "username": "admin",

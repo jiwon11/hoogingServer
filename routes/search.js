@@ -1,7 +1,5 @@
 const express = require('express');
-
-
-const { Post,Tag,User,Search,Address } = require('../models');
+const { Post,Tag,User,Search,Address,Collection } = require('../models');
 const { isLoggedIn } = require('./middlewares');
 const sequelize = require("sequelize");
 const Op = sequelize.Op;
@@ -55,11 +53,8 @@ router.get('/', isLoggedIn ,async(req,res,next) => {
                                     [Op.like]: "%" + query + "%"
                                 }
                             },
-                            include : [{
-                                model : Post,
-                                offset: 0+offset,
-                                limit: 30+limit,
-                            }]
+                            include : [
+                            ]
                         })
                     ));
                     res.status(200).json({
@@ -86,8 +81,6 @@ router.get('/', isLoggedIn ,async(req,res,next) => {
                             as : 'Followings',
                         },{
                             model : Post,
-                            offset: 0+offset,
-                            limit: 30+limit,
                         }],
                     });
                     res.status(200).json({
@@ -106,18 +99,16 @@ router.get('/', isLoggedIn ,async(req,res,next) => {
                         },
                         include : [{
                             model : Post,
-                            offset: 0+offset,
-                            limit: 30+limit,
                         }],
                     });
                     res.status(200).json({
                         'message' : 'adressQueryResults',
-                        'result Category' : 'User',
+                        'result Category' : 'Address',
                         'result' : adressQueryResults
                     });
                 }
             }
-            else{
+            else{ //categoty === 'popular'
                 const popularQueryResults = await Search.findAll({
                     where:{
                         deletedAt : null,

@@ -18,6 +18,7 @@ const commentRouter = require('./routes/comment');
 const feedRouter = require('./routes/feed');
 const openBankingRouter = require('./routes/openbanking');
 const collectionRouter = require('./routes/collection');
+const addressRouter = require('./routes/address');
 const { sequelize } = require('./models');
 const passportConfig = require('./passport');
 
@@ -58,6 +59,7 @@ app.use('/comment', commentRouter);
 app.use('/feed', feedRouter);
 app.use('/openBanking', openBankingRouter);
 app.use('/collection', collectionRouter);
+app.use('/address', addressRouter);
 
 app.use((req, res, next) => {
   const err = new Error('Not Found');
