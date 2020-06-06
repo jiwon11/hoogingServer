@@ -1,30 +1,195 @@
 const express = require('express');
 const router = express.Router();
-const {Op} = require('sequelize');
-const { Post, Tag, User, MediaFile, Address, Comment, Like,Description,Product } = require('../models');
+const sequelize = require('sequelize');
+const { Post, Tag, User, MediaFile, Address, Comment, Like,Description,Product,Collection } = require('../models');
 const { isLoggedIn } = require('./middlewares');
 
 router.get('/', isLoggedIn, async(req,res) => {
   try{
     const tagIds = req.query.tagIds.split(',');
     const category = req.query.category;
-    const order = req.query.order; //hits | createdAt
+    const orderType = req.query.order; //popluar | createdAt
+    var order;
+    if(orderType ==='popular'){
+      order = [sequelize.literal('hits*1+likes*3'), 'DESC'];
+    }else if(orderType === 'createdAt'){
+      order = ['createdAt', 'DESC'];
+    }
     const tagIdsInt = tagIds.map((id)=> parseInt(id,10));
     if(category === 'post'){
-        const posts = await Post.findAll({
+      if(orderType ==='popular'){
+        order = [sequelize.literal('hits*1+likes*3'), 'DESC'];
+      }else if(orderType === 'createdAt'){
+        order = ['createdAt', 'DESC'];
+      }
+        await Post.findAll({
           where : {
-            [Op.or] : [
-              {mainTagId : {[Op.or]: tagIdsInt}},
-              {subTagOneId : {[Op.or]: tagIdsInt}},
-              {subTagTwoId : {[Op.or]: tagIdsInt}},
+            [sequelize.Op.or] : [
+              {mainTagId : {[sequelize.Op.or]: tagIdsInt}},
+              {subTagOneId : {[sequelize.Op.or]: tagIdsInt}},
+              {subTagTwoId : {[sequelize.Op.or]: tagIdsInt}},
+              {dump : false}
+            ]
+          },
+          include : [{
+            model : User,
+            attributes : ['id', 'nickname','profileImg'],
+            }, {
+                model : Tag,
+                as : 'mainTags'
+            }, {
+                model : Tag,
+                as : 'subTagOnes'
+            }, {
+                model : Tag,
+                as : 'subTagTwos'
+            }, {
+            model : User,
+            through : 'Like',
+            as : 'Likers',
+            attributes : ['id', 'nickname','profileImg'],
+            }, {
+                model : MediaFile,
+                attributes : ['id', 'filename', 'size', 'mimetype', 'index'],
+            },
+            {
+                model : Description,
+                attributes : ['id', 'description', 'index'],
+            },
+            {
+                model : Product,
+                through : 'reviewProduct',
+                as : 'Products',
+                attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
+            }
+          ],
+          attributes: {
+            include: [
+              [sequelize.literal('hits*1+likes*3'), 'popular']
             ]
           },
           order : [
-            [order, 'DESC']
+            order
           ]
+        }).then((posts) => {
+          res.status(200).json(posts);
         });
-      return res.status(200).json(posts);
-    }else if(category === 'collection'){
+    } else if(category === 'collection'){
+      if(orderType ==='popular'){
+        order = ['Like', 'DESC'];
+      }else if(orderType === 'createdAt'){
+        order = ['createdAt', 'DESC'];
+      }
+      const tagIdsName = await Promise.all(tagIdsInt.map(async (tagId) => {
+        const tag = await Tag.findOne({ where : { id : tagId },attributes : ['name'] });
+        return tag.name;
+      }));
+      const tagEqColName = await Collection.findAll({
+        where : {
+            [sequelize.Op.or]: [
+              {name : {[sequelize.Op.substring]: tagIdsName[0]}},
+              {name : {[sequelize.Op.substring]: tagIdsName[1]}},
+              {name : {[sequelize.Op.substring]: tagIdsName[2]}}
+            ]
+        },
+        include :[
+          {
+            model : Post,
+            as : 'Posts',
+            include : [{
+              model : User,
+              attributes : ['id', 'nickname','profileImg'],
+              }, {
+                  model : Tag,
+                  as : 'mainTags'
+              }, {
+                  model : Tag,
+                  as : 'subTagOnes'
+              }, {
+                  model : Tag,
+                  as : 'subTagTwos'
+              }, {
+              model : User,
+              through : 'Like',
+              as : 'Likers',
+              attributes : ['id', 'nickname','profileImg'],
+              }, {
+                  model : MediaFile,
+                  attributes : ['id', 'filename', 'size', 'mimetype', 'index'],
+              },
+              {
+                  model : Description,
+                  attributes : ['id', 'description', 'index'],
+              },
+              {
+                  model : Product,
+                  through : 'reviewProduct',
+                  as : 'Products',
+                  attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
+              }
+            ]
+          }
+        ],
+        order : [
+          order
+        ]
+      });
+      const tagNeqColName = await Collection.findAll({
+        include :[
+          {
+            model : Post,
+            as : 'Posts',
+            where : {
+              [sequelize.Op.or] : [
+                {mainTagId : {[sequelize.Op.or]: tagIdsInt}},
+                {subTagOneId : {[sequelize.Op.or]: tagIdsInt}},
+                {subTagTwoId : {[sequelize.Op.or]: tagIdsInt}},
+              ]
+            },
+            include : [{
+              model : User,
+              attributes : ['id', 'nickname','profileImg'],
+              }, {
+                  model : Tag,
+                  as : 'mainTags'
+              }, {
+                  model : Tag,
+                  as : 'subTagOnes'
+              }, {
+                  model : Tag,
+                  as : 'subTagTwos'
+              }, {
+              model : User,
+              through : 'Like',
+              as : 'Likers',
+              attributes : ['id', 'nickname','profileImg'],
+              }, {
+                  model : MediaFile,
+                  attributes : ['id', 'filename', 'size', 'mimetype', 'index'],
+              },
+              {
+                  model : Description,
+                  attributes : ['id', 'description', 'index'],
+              },
+              {
+                  model : Product,
+                  through : 'reviewProduct',
+                  as : 'Products',
+                  attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
+              }
+            ]
+          }
+        ],
+        order : [
+          order
+        ]
+      });
+      const collection = await tagEqColName.concat(tagNeqColName);
+      const uniCollection = Array.from(new Set(collection.map(a => a.id)))
+      .map(id => {
+        return collection.find(a => a.id === id);
+      });
+      res.status(200).json(uniCollection);
     }
   } catch(error){
     console.log(error);

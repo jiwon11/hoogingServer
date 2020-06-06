@@ -85,7 +85,7 @@ router.post('/create', isLoggedIn, collection.none() ,async(req, res) =>{
 
 router.post('/postAdd', isLoggedIn, collection.none(), async(req, res) => {
     try{
-        const postIds = Array.from(req.body.posts);
+        const postIds = req.body.posts.split(',');
         const collectionId = req.body.collectionId;
         const userId = req.user.id;
         const collection = await Collection.findOne({
@@ -96,17 +96,12 @@ router.post('/postAdd', isLoggedIn, collection.none(), async(req, res) => {
             }
         });
         if(collection){
-            postIds.map(async(postId) => {
-                const post = await Post.findOne({
-                    where : {
-                        deletedAt : null,
-                        id : postId,
-                        dump : false
-                    },
-                    attributes : ['id']
+            for(const postId of postIds){
+                await Post.findOne({where : {id:postId}}).then(post =>{
+                    console.log(post);
+                    collection.addPost(post.id);
                 });
-                await collection.addPost(post.id);
-            });
+            }
             return res.status(201).json({
                 'message' : 'Posts Add In Collection',
                 'collection' : collection
@@ -146,7 +141,7 @@ router.post('/postUpdate', isLoggedIn, collection.none(), async(req, res) => {
         });
         const previousPost = collection.posts.map((post) => {return post.id;});
         console.log(previousPost);
-        await collection.removeProduct(previousPost)
+        await collection.removePost(previousPost)
         .then(async() => {
             postIds.map(async(postId) => {
                 const post = await Post.findOne({

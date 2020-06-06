@@ -2,16 +2,21 @@ module.exports = (sequelize, DataTypes) => (
     sequelize.define('address',{
         address : {
             type : DataTypes.STRING(200),
-            allowNull : true
+            allowNull : false
         },
         geographLong : {
             type : DataTypes.FLOAT,
-            allowNull : true
+            allowNull : false
         },
         geographLat : {
             type : DataTypes.FLOAT,
-            allowNull : true
+            allowNull : false
         },
+        reviewNum : {
+            type : DataTypes.INTEGER,
+            defaultValue : 0,
+            allowNull : false
+        }
     }, {
         timestamps : true,
         paranoid : true,

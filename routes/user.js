@@ -3,10 +3,9 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const{ isLoggedIn } = require('./middlewares');
-const { Post,Tag,User,Comment,Like,MediaFile,Description,Product } = require('../models');
-const Sequelize = require('sequelize');
-const op = Sequelize.Op;
-
+const { Post,Tag,User,Comment,Like,MediaFile,Description,Product,Collection,Address } = require('../models');
+const sequelize = require('sequelize');
+const {Op} = require('sequelize');
 var router = express.Router();
 fs.readdir('profileImg', (error)=> {
   if(error) {
@@ -21,136 +20,115 @@ router.get('/profile', isLoggedIn,async(req,res,next) => {
   try{
     const userNickname = req.query.nickname;
     if(userNickname === req.user.nickname){
+      console.log('Find My Profile');
       const user = await User.findOne({
-        where : { nickname : userNickname },
-        attributes : ['id', 'nickname', 'profileImg', 'hoogingAccountBalance'],
-        include : [{
-            model : User,
-            attributes : ['id', 'nickname','profileImg'],
-            as : 'Followers',
-        }, {
-            model : User,
-            attributes : ['id', 'nickname','profileImg'],
-            as : 'Followings',
-        },{
-        model : Post,
-        where : {
-          deletedAt : null,
+        where : { 
+          nickname: userNickname
         },
-        include : [
-          {
-            model : User,
-            attributes : ['id', 'nickname','profileImg'],
-            }, {
-                model : Tag,
-                as : 'mainTags'
-            }, {
-                model : Tag,
-                as : 'subTagOnes'
-            }, {
-                model : Tag,
-                as : 'subTagTwos'
-            }, {
-            model : User,
-            through : 'Like',
-            as : 'Likers',
-            attributes : ['id', 'nickname','profileImg'],
-            }, {
-                model : MediaFile,
-                attributes : ['id', 'filename', 'size', 'mimetype', 'index'],
-            },
-            {
-                model : Description,
-                attributes : ['id', 'description', 'index'],
-            },
-            {
-                model : Product,
-                through : 'reviewProduct',
-                as : 'Products',
-                attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
-            }
-        ],
-        },{
-          model : Tag
-        }
-      ]
-      });
-      if(user){
-        return res.status(200).json({
-          'user' : user,
-      });
-      } else {
-        return res.status(404).json({
-          'message' : "Can't find User ",
-          'error' : 'Check User Id'
-      });
-      }
-    } else {
-      const user = await User.findOne({
-        where : { nickname : userNickname },
-        attributes : ['id', 'nickname', 'profileImg', 'hoogingAccountBalance'],
         include : [{
+          model : User,
+          as : 'Followers',
+          }, {
             model : User,
-            attributes : ['id', 'nickname','profileImg'],
-            as : 'Followers',
-        }, {
-            model : User,
-            attributes : ['id', 'nickname','profileImg'],
             as : 'Followings',
-        },{
-        model : Post,
-        include : [
-          {
-            model : User,
-            attributes : ['id', 'nickname','profileImg'],
-            }, {
+          },{
+            model : Collection
+          },{
+            model : Post,
+            include : [
+              {
                 model : Tag,
                 as : 'mainTags'
-            }, {
-                model : Tag,
-                as : 'subTagOnes'
-            }, {
-                model : Tag,
-                as : 'subTagTwos'
-            }, {
-            model : User,
-            through : 'Like',
-            as : 'Likers',
-            attributes : ['id', 'nickname','profileImg'],
-            }, {
+              }, {
+                  model : Tag,
+                  as : 'subTagOnes'
+              }, {
+                  model : Tag,
+                  as : 'subTagTwos'
+              },{
                 model : MediaFile,
                 attributes : ['id', 'filename', 'size', 'mimetype', 'index'],
-            },
-            {
-                model : Description,
-                attributes : ['id', 'description', 'index'],
-            },
-            {
-                model : Product,
-                through : 'reviewProduct',
-                as : 'Products',
-                attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
-            }
+              },{
+                  model : Description,
+                  attributes : ['id', 'description', 'index'],
+              },{
+                  model : Product,
+                  through : 'reviewProduct',
+                  as : 'Products',
+                  attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
+              },{
+                model : User,
+                through : 'Like',
+                as : 'Likers',
+                attributes : ['id', 'nickname','profileImg'],
+              }
+            ]
+          }
         ],
-        where :{
-          dump : false,
-          deletedAt : null,
-        }
-        },{
-          model : Tag
-        }
-      ]
+        attributes : [
+          'id',
+          'nickname',
+          'profileImg', 
+          'hoogingAccountBalance',
+        ]   
+    });
+    return res.status(200).json(user);
+  } else {
+    const user = await User.findOne({
+      where : { nickname : userNickname },
+      attributes : ['id', 'nickname', 'profileImg', 'hoogingAccountBalance'],
+      include : [{
+          model : User,
+          attributes : ['id', 'nickname','profileImg'],
+          as : 'Followers',
+      }, {
+          model : User,
+          attributes : ['id', 'nickname','profileImg'],
+          as : 'Followings',
+      },{
+        model : Collection
+      },{
+      model : Post,
+      include : [
+        {
+          model : User,
+          attributes : ['id', 'nickname','profileImg'],
+          }, {
+              model : Tag,
+              as : 'mainTags'
+          }, {
+              model : Tag,
+              as : 'subTagOnes'
+          }, {
+              model : Tag,
+              as : 'subTagTwos'
+          }, {
+              model : MediaFile,
+              attributes : ['id', 'filename', 'size', 'mimetype', 'index'],
+          },
+          {
+              model : Description,
+              attributes : ['id', 'description', 'index'],
+          },
+          {
+              model : Product,
+              through : 'reviewProduct',
+              as : 'Products',
+              attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
+          },{
+            model : Address
+          }
+      ],
+      where :{
+        dump : false,
+      }
+      },{
+        model : Tag
+      }]
       });
-      if(user){
         return res.status(200).json({
           'user' : user,
       });
-      } else {
-        return res.status(404).json({
-          'message' : "Can't find User ",
-          'error' : 'Check User Id'
-      });
-      }
     }
   } catch(error){
     console.log(error);

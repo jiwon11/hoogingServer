@@ -12,6 +12,7 @@ router.post('/', isLoggedIn, async(req, res, next) => {
         var postId = req.query.postId;
         const user = await User.findOne({where : {id : userId}, attributes : ['id','nickname','profileImg']});
         const post = await Post.findOne({where : {id : postId}});
+        await post.increment({'likes': 1});
         await post.addLiker(user.id);
         return res.status(201).json({
             'message' : `Like Post`,
@@ -33,6 +34,7 @@ router.delete('/', isLoggedIn, async(req, res, next) => {
         var postId = req.query.postId;
         const user = await User.findOne({where : {id : userId}, attributes : ['id','nickname','profileImg']});
         const post = await Post.findOne({where : {id : postId}});
+        await post.decrement({'likes': 1});
         await post.removeLiker(parseInt(user.id,10));
         return res.status(201).json({
             'message' : `Delete Like Post`,

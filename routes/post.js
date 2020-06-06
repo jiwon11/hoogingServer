@@ -10,6 +10,7 @@ const cheerio = require("cheerio");
 const iconv = require('iconv-lite');
 const charset = require('charset');
 const Url = require('url');
+const {Op} = require('sequelize');
 const { Post, Tag, User, MediaFile, Address, Comment, Like,Description,Product } = require('../models');
 const { isLoggedIn } = require('./middlewares');
 
@@ -76,13 +77,19 @@ const upload2 = multer();
 router.post('/upload', isLoggedIn ,upload.array('mediaFile'), async (req, res, next) => {
     console.log(req.files);
     try {
-        const address = await Address.findOrCreate({
+        const [address, created] = await Address.findOrCreate({
             where : {
-            address: req.body.address,
-            geographLong: parseFloat(req.body.geographLong),
-            geographLat: parseFloat(req.body.geographLat),
+                address: req.body.address,
+            },
+            defaults : {
+                geographLong: parseFloat(req.body.geographLong),
+                geographLat: parseFloat(req.body.geographLat),
+                reviewNum : sequelize.literal('reviewNum + 1'),
             }
         });
+        if(created === false){
+            await address.increment({'reviewNum': 1});
+        }
         const mainTagResults = await Tag.findOrCreate({
             where : {name : req.body.mainTag}
         });
@@ -133,7 +140,7 @@ router.post('/upload', isLoggedIn ,upload.array('mediaFile'), async (req, res, n
             includeVideo : includeVideo(req.files),
             starRate: parseFloat(req.body.starRate),
             certifiedLocation: (req.body.certifiedLocation ==='true'),
-            addressId : address[0].id,
+            addressId : address.id,
             mainTagId : mainTagResult.id,
             subTagOneId : subTag1[0].id,
             subTagTwoId : subTag2[0].id,
@@ -321,7 +328,7 @@ router.post('/update', isLoggedIn, upload.array('mediaFile'), async (req, res, n
     try {
         const dump = (req.body.dump==='true');
         const certifiedLocation = (req.body.certifiedLocation ==='true');
-        const address = await Address.findOrCreate({
+        const [address,creared] = await Address.findOrCreate({
             where:{
                 address: req.body.address,
                 geographLong: parseFloat(req.body.geographLong),
@@ -337,7 +344,7 @@ router.post('/update', isLoggedIn, upload.array('mediaFile'), async (req, res, n
             includeVideo : includeVideo(req.files),
             starRate: parseFloat(req.body.starRate),
             certifiedLocation: certifiedLocation,
-            addressId : address[0].id,
+            addressId : address.id,
             sequence : req.body.sequence,
             dump : dump
         }, 

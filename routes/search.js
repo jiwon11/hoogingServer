@@ -53,7 +53,8 @@ router.get('/', isLoggedIn ,async(req,res,next) => {
                                     [Op.like]: "%" + query + "%"
                                 }
                             },
-                            include : [
+                            order : [
+                                [sequelize.fn('max', sequelize.col('reviewNum')), 'DESC'],
                             ]
                         })
                     ));
@@ -73,15 +74,20 @@ router.get('/', isLoggedIn ,async(req,res,next) => {
                         },
                         include : [{
                             model : User,
-                            attributes : ['id', 'nickname','profileImg'],
                             as : 'Followers',
                         }, {
                             model : User,
-                            attributes : ['id', 'nickname','profileImg'],
                             as : 'Followings',
-                        },{
-                            model : Post,
                         }],
+                        attributes : [
+                            'id',
+                            'nickname',
+                            'profileImg',
+                            [sequelize.fn('COUNT', sequelize.col('Followers.id')), 'followers']
+                        ],
+                        order : [
+                            [sequelize.fn('COUNT', sequelize.col('Followers.id')), 'DESC']
+                        ]
                     });
                     res.status(200).json({
                         'message' : 'userQueryResults',
@@ -97,9 +103,9 @@ router.get('/', isLoggedIn ,async(req,res,next) => {
                                 [Op.like]: "%" + query + "%"
                             }
                         },
-                        include : [{
-                            model : Post,
-                        }],
+                        order : [
+                            [sequelize.fn('max', sequelize.col('reviewNum')), 'DESC']
+                        ]
                     });
                     res.status(200).json({
                         'message' : 'adressQueryResults',
