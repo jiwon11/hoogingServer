@@ -245,6 +245,9 @@ router.get('/', isLoggedIn ,async (req, res, next) => {
                 through : 'reviewProduct',
                 as : 'Products',
                 attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
+            },
+            {
+                model : Address
             }
         ], 
      });
@@ -257,6 +260,7 @@ router.get('/', isLoggedIn ,async (req, res, next) => {
          }
         const comments = await Comment.findAll({
             where : { postId : postId },
+            order : ['createdAt', 'DESC'],
             include : [
                 {
                 model : User,
@@ -265,6 +269,7 @@ router.get('/', isLoggedIn ,async (req, res, next) => {
                 model : Comment,
                 through : 'Reply',
                 as : 'replys',
+                order : ['createdAt', 'DESC'],
             }
         ]
         });
@@ -335,10 +340,9 @@ router.post('/update', isLoggedIn, upload.array('mediaFile'), async (req, res, n
                 geographLat: parseFloat(req.body.geographLat),
             }
         });
-        const post = await Post.findOne({
-            where : { id :  postId } 
-        });
-        await Post.update({ 
+
+        const post = await Post.findByPk(postId);
+        await post.update({ 
             title : req.body.title,
             description : req.body.description,
             includeVideo : includeVideo(req.files),
@@ -347,10 +351,8 @@ router.post('/update', isLoggedIn, upload.array('mediaFile'), async (req, res, n
             addressId : address.id,
             sequence : req.body.sequence,
             dump : dump
-        }, 
-        { 
-            where: { id :  postId } 
         });
+        
         await MediaFile.destroy({
             where : {
                 postId : postId

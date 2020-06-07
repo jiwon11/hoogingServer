@@ -3,11 +3,14 @@ const router = express.Router();
 const Sequelize = require('sequelize');
 const Op = Sequelize.Op;
 
-const { Tag,User,Post,Comment,MediaFile,Address,Description } = require('../models');
+const { Tag,User,Post,Comment,MediaFile,Address,Description,Product, } = require('../models');
 const { isLoggedIn } = require('./middlewares');
 
 router.get('/', isLoggedIn ,async (req,res, next) => {
+    // /feed?offset=0&limit=20
     try {
+        const offset = parseInt(req.query.offset,10); // 첫 10개 항목은 반환받지 않음.
+        const limit = parseInt(req.query.limit,10); // 반환되는 항목의 개수 제한
         const user =  await User.findOne({
             where : {
                 id : req.user.id
@@ -24,7 +27,6 @@ router.get('/', isLoggedIn ,async (req,res, next) => {
                     attributes : ['id'],
                 },
             ],
-            raws : true 
         });
         var followUserId = [];
         var followTagId = [] ;
@@ -40,50 +42,77 @@ router.get('/', isLoggedIn ,async (req,res, next) => {
                     {
                         userId : {
                             [Op.or] : followUserId
-                        },
-                        tagId : {
-                            [Op.or] : followTagId
-                        },
+                        }
+                    },{
+                        mainTagId: {
+                            [Op.or]: followTagId
+                        }
+                    },{
+                        subTagOneId: {
+                          [Op.or]: followTagId
+                        }
+                    },{
+                        subTagTwoId: {
+                          [Op.or]: followTagId
+                        }
                     }
                 ],
-                dump : false
+                dump : false,
+                deletedAt : null
             },
             order : [['createdAt', 'DESC']],
             include : [
                 {
                     model : User,
-                    attributes : ['id', 'nickname', 'profileImg']
-                },{
-                    model : Comment,
-                    attributes : ['id', 'description', 'Like'],
-                    include : [{
-                        model : User,
-                        attributes : ['id', 'nickname', 'profileImg']
-                        }, {
+                    attributes : ['id', 'nickname','profileImg'],
+                    }, {
+                        model : Tag,
+                        as : 'mainTags',
+                    }, {
+                        model : Tag,
+                        as : 'subTagOnes',
+                    }, {
+                        model : Tag,
+                        as : 'subTagTwos',
+                    }, {
+                    model : User,
+                    through : 'Like',
+                    as : 'Likers',
+                    attributes : ['id', 'nickname','profileImg'],
+                    }, {
+                        model : MediaFile,
+                        attributes : ['id', 'filename', 'size', 'mimetype', 'index'],
+                    },
+                    {
+                        model : Description,
+                        attributes : ['id', 'description', 'index'],
+                    },
+                    {
+                        model : Product,
+                        through : 'reviewProduct',
+                        as : 'Products',
+                        attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
+                    },
+                    {
+                        model : Address
+                    },{
+                        model : Comment,
+                        include : [
+                            {
+                            model : User,
+                            attributes : ['id', 'nickname','profileImg'],
+                            }, {
                             model : Comment,
                             through : 'Reply',
                             as : 'replys',
-                            include : [{
-                                model : User,
-                                attributes : ['id', 'nickname', 'profileImg']
-                            }],
-                            attributes : ['id', 'description', 'Like']
-                        }
-                    ]
-                },{
-                    model : MediaFile,
-                    attributes : ['id','mimetype', 'filename', 'index'],
-                },{
-                    model : Address,
-                    attributes : ['id', 'address', 'geographLong', 'geographLat'],
-                },{
-                    model : Tag,
-                    attributes : ['id', 'name', 'starRate', 'reviewNum'],
-                },{
-                    model : Description,
-                    attributes : ['id', 'description', 'index'],
-                }
-            ]
+                            order : ['createdAt', 'DESC'],
+                            }
+                        ],
+                        order : ['createdAt', 'DESC']
+                    }
+            ],
+            offset : offset,
+            limit : limit
         });
         return res.status(200).json({
             'message' : 'Feed Load',

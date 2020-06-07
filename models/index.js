@@ -23,7 +23,7 @@ db.Search = require('./search')(sequelize, Sequelize);
 db.Product = require('./product')(sequelize, Sequelize);
 db.Verify = require('./verify')(sequelize, Sequelize);
 db.Collection = require('./collection')(sequelize, Sequelize);
-
+db.CollectionPost = require('./collectionPost')(sequelize, Sequelize);
 
 db.User.hasMany(db.Post);
 db.Post.belongsTo(db.User,{ onDelete: 'CASCADE'});
@@ -109,11 +109,11 @@ db.Collection.belongsTo(db.User,{ onDelete: 'CASCADE'});
 db.Collection.belongsToMany(db.Post, {
   foreignKey : 'collectionId',
   as : 'Posts',
-  through : 'CollectionPost',
+  through : db.CollectionPost,
 });
 db.Post.belongsToMany(db.Collection, {
   foreignKey : 'postId',
   as : 'Collections',
-  through : 'CollectionPost',
+  through : db.CollectionPost,
 });
 module.exports = db;

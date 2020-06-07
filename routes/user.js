@@ -19,11 +19,10 @@ router.get('/profile', isLoggedIn,async(req,res,next) => {
     //localhost:8001/user/profile?nickname=jiwon11
   try{
     const userNickname = req.query.nickname;
-    if(userNickname === req.user.nickname){
-      console.log('Find My Profile');
+    const checkMine = (userNickname === req.user.nickname) ? [{deletedAt : null}] : [{deletedAt : null},{dump : false}];
       const user = await User.findOne({
         where : { 
-          nickname: userNickname
+          nickname: userNickname,
         },
         include : [{
           model : User,
@@ -35,6 +34,9 @@ router.get('/profile', isLoggedIn,async(req,res,next) => {
             model : Collection
           },{
             model : Post,
+            where:{
+              [Op.and]: checkMine
+            },
             include : [
               {
                 model : Tag,
@@ -73,63 +75,6 @@ router.get('/profile', isLoggedIn,async(req,res,next) => {
         ]   
     });
     return res.status(200).json(user);
-  } else {
-    const user = await User.findOne({
-      where : { nickname : userNickname },
-      attributes : ['id', 'nickname', 'profileImg', 'hoogingAccountBalance'],
-      include : [{
-          model : User,
-          attributes : ['id', 'nickname','profileImg'],
-          as : 'Followers',
-      }, {
-          model : User,
-          attributes : ['id', 'nickname','profileImg'],
-          as : 'Followings',
-      },{
-        model : Collection
-      },{
-      model : Post,
-      include : [
-        {
-          model : User,
-          attributes : ['id', 'nickname','profileImg'],
-          }, {
-              model : Tag,
-              as : 'mainTags'
-          }, {
-              model : Tag,
-              as : 'subTagOnes'
-          }, {
-              model : Tag,
-              as : 'subTagTwos'
-          }, {
-              model : MediaFile,
-              attributes : ['id', 'filename', 'size', 'mimetype', 'index'],
-          },
-          {
-              model : Description,
-              attributes : ['id', 'description', 'index'],
-          },
-          {
-              model : Product,
-              through : 'reviewProduct',
-              as : 'Products',
-              attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
-          },{
-            model : Address
-          }
-      ],
-      where :{
-        dump : false,
-      }
-      },{
-        model : Tag
-      }]
-      });
-        return res.status(200).json({
-          'user' : user,
-      });
-    }
   } catch(error){
     console.log(error);
     return res.status(404).json({

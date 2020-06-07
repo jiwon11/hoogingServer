@@ -10,7 +10,10 @@ router.get('/',isLoggedIn, async(req, res, next) => {
       where: {
         userId : req.user.id,
         dump :true
-      }
+      },
+      order : [
+        ['createdAt', 'DESC']
+      ]
     });
     return res.status(200).json({
       'message' : 'hoogingApp Main Page',

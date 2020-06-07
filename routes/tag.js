@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const sequelize = require('sequelize');
-const { Post, Tag, User, MediaFile, Address, Comment, Like,Description,Product,Collection } = require('../models');
+const { Post, Tag, User, MediaFile, Address, Comment, Like,Description,Product,Collection,CollectionPost } = require('../models');
 const { isLoggedIn } = require('./middlewares');
 
 router.get('/', isLoggedIn, async(req,res) => {
@@ -28,8 +28,8 @@ router.get('/', isLoggedIn, async(req,res) => {
               {mainTagId : {[sequelize.Op.or]: tagIdsInt}},
               {subTagOneId : {[sequelize.Op.or]: tagIdsInt}},
               {subTagTwoId : {[sequelize.Op.or]: tagIdsInt}},
-              {dump : false}
-            ]
+            ],
+            dump : false
           },
           include : [{
             model : User,
@@ -96,55 +96,8 @@ router.get('/', isLoggedIn, async(req,res) => {
           {
             model : Post,
             as : 'Posts',
-            include : [{
-              model : User,
-              attributes : ['id', 'nickname','profileImg'],
-              }, {
-                  model : Tag,
-                  as : 'mainTags'
-              }, {
-                  model : Tag,
-                  as : 'subTagOnes'
-              }, {
-                  model : Tag,
-                  as : 'subTagTwos'
-              }, {
-              model : User,
-              through : 'Like',
-              as : 'Likers',
-              attributes : ['id', 'nickname','profileImg'],
-              }, {
-                  model : MediaFile,
-                  attributes : ['id', 'filename', 'size', 'mimetype', 'index'],
-              },
-              {
-                  model : Description,
-                  attributes : ['id', 'description', 'index'],
-              },
-              {
-                  model : Product,
-                  through : 'reviewProduct',
-                  as : 'Products',
-                  attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
-              }
-            ]
-          }
-        ],
-        order : [
-          order
-        ]
-      });
-      const tagNeqColName = await Collection.findAll({
-        include :[
-          {
-            model : Post,
-            as : 'Posts',
             where : {
-              [sequelize.Op.or] : [
-                {mainTagId : {[sequelize.Op.or]: tagIdsInt}},
-                {subTagOneId : {[sequelize.Op.or]: tagIdsInt}},
-                {subTagTwoId : {[sequelize.Op.or]: tagIdsInt}},
-              ]
+              dump : false
             },
             include : [{
               model : User,
@@ -177,11 +130,65 @@ router.get('/', isLoggedIn, async(req,res) => {
                   as : 'Products',
                   attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
               }
-            ]
+            ],
           }
         ],
         order : [
-          order
+          order,
+          [{model:Post, as:'Posts'},CollectionPost,'index','ASC']
+        ]
+      });
+      const tagNeqColName = await Collection.findAll({
+        include :[
+          {
+            model : Post,
+            as : 'Posts',
+            where : {
+              [sequelize.Op.or] : [
+                {mainTagId : {[sequelize.Op.or]: tagIdsInt}},
+                {subTagOneId : {[sequelize.Op.or]: tagIdsInt}},
+                {subTagTwoId : {[sequelize.Op.or]: tagIdsInt}},
+              ],
+              dump : false
+            },
+            order :  [[sequelize.col('collectionPost.index'), 'ASC']],
+            include : [{
+              model : User,
+              attributes : ['id', 'nickname','profileImg'],
+              }, {
+                  model : Tag,
+                  as : 'mainTags'
+              }, {
+                  model : Tag,
+                  as : 'subTagOnes'
+              }, {
+                  model : Tag,
+                  as : 'subTagTwos'
+              }, {
+              model : User,
+              through : 'Like',
+              as : 'Likers',
+              attributes : ['id', 'nickname','profileImg'],
+              }, {
+                  model : MediaFile,
+                  attributes : ['id', 'filename', 'size', 'mimetype', 'index'],
+              },
+              {
+                  model : Description,
+                  attributes : ['id', 'description', 'index'],
+              },
+              {
+                  model : Product,
+                  through : 'reviewProduct',
+                  as : 'Products',
+                  attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
+              }
+            ],
+          }
+        ],
+        order : [
+          order,
+          [{model:Post, as:'Posts'},CollectionPost,'index','ASC']
         ]
       });
       const collection = await tagEqColName.concat(tagNeqColName);

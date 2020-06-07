@@ -1,7 +1,8 @@
 const express = require('express');
 const { isLoggedIn,isNotLoggedIn } = require('./middlewares');
-const { Post, Tag, User, MediaFile, Address, Comment, Like,Description,Product,Collection } = require('../models');
+const { Post, Tag, User, MediaFile, Address, Comment, Like,Description,Product,Collection,CollectionPost } = require('../models');
 const multer = require('multer');
+const sequelize = require('sequelize');
 
 const router = express.Router();
 const collection = multer();
@@ -16,8 +17,11 @@ router.get('/', isLoggedIn ,async(req, res) =>{
             include : [{
                 model : Post,
                 as : 'Posts',
+                where: {
+                    dump : false
+                },
                 include : [
-                    {
+                        {
                         model : User,
                         attributes : ['id', 'nickname','profileImg'],
                         }, {
@@ -48,8 +52,9 @@ router.get('/', isLoggedIn ,async(req, res) =>{
                             as : 'Products',
                             attributes : ['id', 'title', 'description', 'image', 'url', 'site', 'favicon'],
                         }
-                    ]
-            }]
+                    ],
+            }],
+            order : [[{model:Post, as:'Posts'},CollectionPost,'index','ASC']],
         });
         return res.status(200).json({
             'message' : 'Get Collection',
@@ -93,13 +98,12 @@ router.post('/postAdd', isLoggedIn, collection.none(), async(req, res) => {
                 deletedAt : null,
                 id : collectionId,
                 userId : userId
-            }
+            },
         });
         if(collection){
             for(const postId of postIds){
                 await Post.findOne({where : {id:postId}}).then(post =>{
-                    console.log(post);
-                    collection.addPost(post.id);
+                    collection.addPost(post.id, { through: { index: (postIds.indexOf(postId)+1) }});
                 });
             }
             return res.status(201).json({
@@ -123,7 +127,7 @@ router.post('/postAdd', isLoggedIn, collection.none(), async(req, res) => {
 
 router.post('/postUpdate', isLoggedIn, collection.none(), async(req, res) => {
     try{
-        const postIds = Array.from(req.body.posts);
+        const postIds = req.body.posts.split(',');
         const collectionId = req.body.collectionId;
         const userId = req.user.id;
         const collection = await Collection.findOne({
@@ -139,24 +143,25 @@ router.post('/postUpdate', isLoggedIn, collection.none(), async(req, res) => {
                 }
             ]
         });
-        const previousPost = collection.posts.map((post) => {return post.id;});
+        const previousPost = await collection.Posts.map((post) => {return post.id;});
         console.log(previousPost);
-        await collection.removePost(previousPost)
-        .then(async() => {
-            postIds.map(async(postId) => {
-                const post = await Post.findOne({
-                    where : {
-                        id : postId
-                    },
-                    attributes : ['id']
+        if(previousPost === []){
+            res.status(404).json({
+                'message': `Collection has not Posts`
+            });
+        }else{
+            await collection.removePosts(previousPost)
+            .then(async() => {
+                for(const postId of postIds){
+                    const post = await Post.findOne({where : {id:postId}});
+                    await collection.addPost(post.id, { through: { index: (postIds.indexOf(postId)+1) }});
+                }
+                return res.status(201).json({
+                    'message' : 'Posts Update In Collection',
+                    'collection' : collection
                 });
-                await collection.addPost(post.id);
             });
-            return res.status(201).json({
-                'message' : 'Posts Update In Collection',
-                'collection' : collection
-            });
-        });
+        }
     } catch(error){
         console.log(error);
         res.status(404).json({

@@ -44,8 +44,7 @@ router.get('/', isLoggedIn ,async(req,res,next) => {
                 if(category ==='tag'){
                     const queries = query.split(',');
                     console.log(queries);
-                    var tagQueryResults;
-                    tagQueryResults = await Promise.all(queries.map(query => 
+                    const tagQueryResults = await Promise.all(queries.map(query => 
                         Tag.findAll({
                             where:{
                                 deletedAt : null,
@@ -54,11 +53,11 @@ router.get('/', isLoggedIn ,async(req,res,next) => {
                                 }
                             },
                             order : [
-                                [sequelize.fn('max', sequelize.col('reviewNum')), 'DESC'],
+                                ['reviewNum', 'DESC'],
                             ]
                         })
                     ));
-                    res.status(200).json({
+                    return res.status(200).json({
                         'message' : 'tagQueryResults',
                         'result Category' : 'Tag',
                         'result' : tagQueryResults
@@ -104,7 +103,7 @@ router.get('/', isLoggedIn ,async(req,res,next) => {
                             }
                         },
                         order : [
-                            [sequelize.fn('max', sequelize.col('reviewNum')), 'DESC']
+                            ['reviewNum', 'DESC']
                         ]
                     });
                     res.status(200).json({
