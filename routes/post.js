@@ -77,6 +77,7 @@ function getIndex(ele) {
 const upload2 = multer();
 router.post('/upload', isLoggedIn ,upload.array('mediaFile'), async (req, res, next) => {
     console.log(req.files);
+    console.log(req.body);
     try {
         const address = await Address.create({
             address: req.body.address,
@@ -124,6 +125,7 @@ router.post('/upload', isLoggedIn ,upload.array('mediaFile'), async (req, res, n
         });
         console.log('===================================================');
         const descriptions = JSON.parse(req.body.description);
+        console.log(descriptions);
         const sequence = Array.from(req.body.sequence);
         var i = 0, len = sequence.length;
         do {
@@ -159,7 +161,7 @@ router.post('/upload', isLoggedIn ,upload.array('mediaFile'), async (req, res, n
     });
     } catch (error) {
       console.error(error);
-      next(error);
+      res.status(404).json(error);
     }
 });
 

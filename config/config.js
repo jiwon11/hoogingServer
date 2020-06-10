@@ -6,5 +6,11 @@ module.exports = {
     "host": "database-1.c2g4zseshvri.ap-northeast-2.rds.amazonaws.com",
     "port" : 3306,
     "dialect": "mysql",
-    "logging": false
+    "logging": false,
+    "define": {
+        "charset": "utf8",
+        "dialectOptions": {
+          "collate": "utf8_general_ci"
+        }
+    }
 }

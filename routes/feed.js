@@ -97,6 +97,14 @@ router.get('/', isLoggedIn ,async (req,res, next) => {
       });
     }
 });
-
+router.get('/testFeed', isLoggedIn, async (req,res, next) => {
+    try{
+        const post = Post.findAll({ include: { all: true}});
+        return res.status(200).json(post);
+    } catch(error){
+        console.log(error);
+        return res.status(404).json(error);
+    }
+});
 
 module.exports = router;

@@ -1,9 +1,5 @@
 module.exports = (sequelize, DataTypes) => (
     sequelize.define('post',{
-        title : {
-            type : DataTypes.STRING(100),
-            allowNull : false,
-        },
         starRate : {
             type : DataTypes.DOUBLE,
             allowNull: false
@@ -30,6 +26,8 @@ module.exports = (sequelize, DataTypes) => (
         }
     }, {
         timestamps : true,
-        paranoid : true
+        paranoid : true,
+        charset: 'utf8',
+        collate: 'utf8_general_ci'
     })
 );

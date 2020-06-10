@@ -31,7 +31,7 @@ router.post('/signUp', auth.none(),async(req, res, next) => {
                 gender : gender,
                 profileImg : userGravatar,
             });
-            res.status(201).json({
+            return res.status(201).json({
                 'message' : 'signUp Complete!',
                 'userInfo' : newUser,
             });
@@ -56,6 +56,7 @@ router.post('/login',isNotLoggedIn, auth.none(), (req, res, next) => {
             });
         }
         if (!user) {
+            console.log(info.message);
             return res.status(404).json({
                 'error' : 'login Error',
                 'message' : info.message
