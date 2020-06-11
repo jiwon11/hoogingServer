@@ -99,7 +99,7 @@ router.get('/', isLoggedIn ,async (req,res, next) => {
 });
 router.get('/testFeed', isLoggedIn, async (req,res, next) => {
     try{
-        const post = Post.findAll({ include: { all: true}});
+        const post = await Post.findAll({include:{all:true}, order:[['createdAt', 'DESC']]});
         return res.status(200).json(post);
     } catch(error){
         console.log(error);

@@ -14,12 +14,18 @@ router.post('/signUp', auth.none(),async(req, res, next) => {
     try {
         const exUser = await User.findOne({ where : { email : email } , attributes :['email', 'provider']});
         if(exUser) {
-            return res.status(200).json({
-                'message' : 'You are already a member',
+            return res.status(400).json({
+                'message' : '이미 가입되어 있는 이메일입니다.',
                 'email' : exUser.email,
                 'provider' : exUser.provider
             });
         }else {
+            const uniqNickname = await User.findOne({ where : { nickname : nickname } , attributes :['nickname']});
+            if(uniqNickname) {
+            return res.status(400).json({
+                'message' : '이미 있는 닉네임입니다.'
+            });
+            }
             const hash = await bcrypt.hash(password, 12);
             const userGravatar = gravatar.url(email,{s:'80',r:'x',d:'mp'},true);
             const birthDate = new Date(birthdate);
@@ -33,11 +39,11 @@ router.post('/signUp', auth.none(),async(req, res, next) => {
             });
             return res.status(201).json({
                 'message' : 'signUp Complete!',
-                'userInfo' : newUser,
+                'userMessage' : `후깅에 오신 걸 환영합니다. ${nickname} 님`,
             });
         }
     } catch (error) {
-        console.error(error);
+        console.error(Object.values(error));
         return res.status(401).json({
             'error' : 'signUp Error',
             'message' : error

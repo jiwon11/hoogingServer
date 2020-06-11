@@ -19,7 +19,8 @@ module.exports = (sequelize, DataTypes) => (
         },
         nickname : {
             type : DataTypes.STRING(20),
-            allowNull : false
+            allowNull : false,
+            unique : true
         },
         birthdate : {
             type : DataTypes.DATEONLY,
