@@ -8,7 +8,7 @@
     "charset": "utf8",
     "collate": "utf8_general_ci"
   },
-  "rdsDevelopment": {
+  "rds_development": {
     "username": "admin",
     "password": "jeewon0109!",
     "database": "hooging_development",

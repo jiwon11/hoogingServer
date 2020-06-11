@@ -16,6 +16,7 @@ const Op = Sequelize.Op;
 
 router.post('/signUp', isNotLoggedIn ,auth.none(),async(req, res, next) => {
     const {email, nickname, password, birthdate, gender  } = req.body;
+    console.log(birthdate);
     try {
         const exUser = await User.findOne({ where : { email : email } , attributes :['email', 'provider']});
         if(exUser) {
@@ -27,7 +28,7 @@ router.post('/signUp', isNotLoggedIn ,auth.none(),async(req, res, next) => {
         }else {
             const hash = await bcrypt.hash(password, 12);
             const userGravatar = gravatar.url(email,{s:'80',r:'x',d:'mp'},true);
-            const birthDate = new Date(birthdate);
+            const birthDate = new Date(birthdate).toISOString().slice(0,10) ;
             const newUser = await User.create({
                 email : email,
                 nickname : nickname,

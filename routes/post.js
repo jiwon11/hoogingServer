@@ -73,6 +73,10 @@ const includeVideo = function includeVideo(files) {
     return includeVideo;
 };
 
+const isDOrM = function isDOrM(obj) {
+    return ('description' in obj) ?  'description' : obj.mimetype.split('/')[0];
+};
+
 const upload2 = multer();
 router.post('/upload', isLoggedIn ,upload.array('mediaFile'), async (req, res, next) => {
     console.log(req.files);
@@ -239,7 +243,7 @@ router.get('/', isLoggedIn ,async (req, res, next) => {
             },
             {
                 model : Description,
-                attributes : ['id', 'description', 'index'],
+                attributes : ['id', 'description', 'index' ],
             },
             {
                 model : Product,
@@ -273,8 +277,14 @@ router.get('/', isLoggedIn ,async (req, res, next) => {
                 { where: { id : postId} }
               );
          }
+        var postBody = post.descriptions.concat(post.mediaFiles).sort(function(a,b) {
+            a.dataValues.type = isDOrM(a);
+            b.dataValues.type = isDOrM(b);
+            return a.index - b.index; 
+        });
         return res.status(200).json({
             'post' : post,
+            'postBody' : postBody
         });
      }else {
         return res.status(404).json({

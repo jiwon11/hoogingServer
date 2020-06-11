@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const Sequelize = require('sequelize');
-const Op = Sequelize.Op;
+const sequelize = require('sequelize');
+const Op = sequelize.Op;
 
 const { Tag,User,Post,Comment,MediaFile,Address,Description,Product, } = require('../models');
 const { isLoggedIn } = require('./middlewares');
@@ -37,6 +37,14 @@ router.get('/', isLoggedIn ,async (req,res, next) => {
              followTagId = user.tags.map((tag) => {return tag.id;});
         }
         const feedPost = await Post.findAll({
+            subQuery: false,
+            attributes : {
+                include : [
+                    //[sequelize.fn('COUNT', {model:Comment},'id'), 'CommentNum'],
+                    [sequelize.fn('count', sequelize.col('comments.id')) ,'commentNum'],
+                    [sequelize.fn('count', sequelize.col('Scrapers.id')) ,'scraperNum']
+                ]
+            },
             where : {
                 [Op.or]: [
                     {
@@ -62,7 +70,7 @@ router.get('/', isLoggedIn ,async (req,res, next) => {
             },
             order : [['createdAt', 'DESC']],
             include : [
-                {
+                    {
                     model : User,
                     attributes : ['id', 'nickname','profileImg'],
                     }, {
@@ -74,11 +82,6 @@ router.get('/', isLoggedIn ,async (req,res, next) => {
                     }, {
                         model : Tag,
                         as : 'subTagTwos',
-                    }, {
-                    model : User,
-                    through : 'Like',
-                    as : 'Likers',
-                    attributes : ['id', 'nickname','profileImg'],
                     }, {
                         model : MediaFile,
                         attributes : ['id', 'filename', 'size', 'mimetype', 'index'],
@@ -95,21 +98,16 @@ router.get('/', isLoggedIn ,async (req,res, next) => {
                     },
                     {
                         model : Address
-                    },{
+                    },
+                    {
+                        model : User,
+                        as : 'Scrapers',
+                        attributes : []
+                    },
+                    {
                         model : Comment,
-                        include : [
-                            {
-                            model : User,
-                            attributes : ['id', 'nickname','profileImg'],
-                            }, {
-                            model : Comment,
-                            through : 'Reply',
-                            as : 'replys',
-                            order : ['createdAt', 'DESC'],
-                            }
-                        ],
-                        order : ['createdAt', 'DESC']
-                    }
+                        attributes : []
+                    },
             ],
             offset : offset,
             limit : limit
@@ -127,5 +125,14 @@ router.get('/', isLoggedIn ,async (req,res, next) => {
     }
 });
 
+router.get('/testFeed', isLoggedIn, async (req,res, next) => {
+    try{
+        const post = await Post.findAll({include:{all:true}, order:[['createdAt', 'DESC']]});
+        return res.status(200).json(post);
+    } catch(error){
+        console.log(error);
+        return res.status(404).json(error);
+    }
+});
 
 module.exports = router;

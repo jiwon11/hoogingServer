@@ -66,7 +66,6 @@ router.get('/', isLoggedIn ,async(req,res,next) => {
                 if(category ==='user'){
                     const userQueryResults = await User.findAll({
                         where:{
-                            deletedAt : null,
                             nickname: {
                                 [Op.like]: "%" + query + "%"
                             }
@@ -74,15 +73,17 @@ router.get('/', isLoggedIn ,async(req,res,next) => {
                         include : [{
                             model : User,
                             as : 'Followers',
+                            attributes : []
                         }, {
                             model : User,
                             as : 'Followings',
+                            attributes : []
                         }],
                         attributes : [
                             'id',
                             'nickname',
                             'profileImg',
-                            [sequelize.fn('COUNT', sequelize.col('Followers.id')), 'followers']
+                            [sequelize.fn('COUNT', sequelize.col('Followers.id')), 'followersNum']
                         ],
                         order : [
                             [sequelize.fn('COUNT', sequelize.col('Followers.id')), 'DESC']
