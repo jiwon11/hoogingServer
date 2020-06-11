@@ -24,7 +24,7 @@ fs.readdir('uploads', (error) => {
     fs.mkdirSync('uploads');
   }
 });
-/*
+
 AWS.config.update({
   accessKeyId: process.env.S3_ACCESS_KEY_ID,
   secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
@@ -36,12 +36,12 @@ const upload = multer({
     s3: new AWS.S3(),
     bucket: 'hoogingpostmedia',
     key(req, file, cb) {
-      cb(null, `original/${Date.now()}${path.basename(file.originalname)}`);
+      cb(null, `original/${+Date.now()}${path.basename(file.originalname)}`);
     },
   }),
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 100 * 1024 * 1024 },
 });
-*/
+/*
 const upload = multer({
     storage: multer.diskStorage({
         destination(req,file,cb) {
@@ -54,7 +54,7 @@ const upload = multer({
     }),
     limits: { fileSize: 100 * 1024 * 1024 },
   });
-
+*/
 const includeVideo = function includeVideo(files) {
     var includeVideoList = [];
     var includeVideo;
@@ -154,25 +154,26 @@ router.post('/upload', isLoggedIn ,upload.array('mediaFile'), async (req, res, n
         do {
             if(sequence[i] === 'D'){
                 var description = descriptions[0];
-                console.log('sequence is Description');
                 await Description.create({
                     description: description,
                     index : i+1,
                     postId : post.id
                 }).then(function(){
+                    console.log('sequence is Description');
                     descriptions.splice(description,1);
                 });
             }else{
-                console.log('sequence is Mediafile');
                 var file = req.files[0];
                 await MediaFile.create({
                     originalname : file.originalname,
                     mimetype : file.mimetype,
-                    filename : file.filename,
+                    filename : file.key,
                     size : file.size,
+                    url : file.location,
                     postId : post.id,
                     index : i+1
                 }).then(function(){
+                    console.log('sequence is Mediafile');
                     req.files.splice(file,1);
                 });
             }
@@ -234,7 +235,7 @@ router.get('/', isLoggedIn ,async (req, res, next) => {
             attributes : ['id', 'nickname','profileImg'],
             }, {
                 model : MediaFile,
-                attributes : ['id', 'filename', 'size', 'mimetype', 'index'],
+                attributes : ['id', 'filename', 'size', 'mimetype', 'index', 'url'],
             },
             {
                 model : Description,
@@ -248,6 +249,20 @@ router.get('/', isLoggedIn ,async (req, res, next) => {
             },
             {
                 model : Address
+            },{
+                model : Comment,
+                order : ['createdAt', 'DESC'],
+                include : [
+                    {
+                    model : User,
+                    attributes : ['id', 'nickname','profileImg'],
+                    }, {
+                    model : Comment,
+                    through : 'Reply',
+                    as : 'replys',
+                    order : ['createdAt', 'DESC'],
+                    }
+                ]
             }
         ], 
      });
@@ -258,24 +273,8 @@ router.get('/', isLoggedIn ,async (req, res, next) => {
                 { where: { id : postId} }
               );
          }
-        const comments = await Comment.findAll({
-            where : { postId : postId },
-            order : ['createdAt', 'DESC'],
-            include : [
-                {
-                model : User,
-                attributes : ['id', 'nickname','profileImg'],
-            }, {
-                model : Comment,
-                through : 'Reply',
-                as : 'replys',
-                order : ['createdAt', 'DESC'],
-            }
-        ]
-        });
         return res.status(200).json({
             'post' : post,
-            'commets' : comments,
         });
      }else {
         return res.status(404).json({
